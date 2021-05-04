@@ -178,7 +178,7 @@ def get_times(value):
 
 def parse_content(value):
   value=remove_tags(value.strip())
-  return re.sub(r'(。|！|？)',r'\l\n',value)
+  return re.sub(r'(。|！|？)',r'\1\n',value)
 ```
 
 这里使用了 python 标准库`w3lib`里面的 remove_tags 方法去除 html 标签：
@@ -186,6 +186,8 @@ def parse_content(value):
 ```python
 from w3lib.html import remove_tags
 ```
+
+`re.sub(r'(。|！|？)',r'\1\n',value)`在句号或感叹号或问号后面添加一个换行，这是为了符合阅读诗词时的习惯：在一个完整的诗句后面换行。
 
 在这里并没有对标题进行处理(将标题修改为原始标题加上正文第一句)，因为在这里主要是定义数据结构，使用`input_processor`和`output_processor`的目的是正确提取数据，规范数据内容，而对标题的处理属于项目设计的需求，因此将放到后面自定义管道中再进行。
 
