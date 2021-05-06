@@ -159,9 +159,11 @@ scrapy 中定义数据结构使用`Item`和`Field`基类，使用语法`字段�
 2. 年代和作者信息位于同一个`<p>`标签内，要分别进行提取
 3. 正文结构不尽相同，有些诗词正文中还带有注释内容，需要进行过滤
 
-scrapy 中允许我们对从页面中获取的数据进行处理之后，再往后传递给 Downloader Middleware，即下载器中间件，负责将爬取的数据按配置进行存储。
+在scrapy中当我们要爬取指定页面时，首先会由spider发起一个爬虫请求给scrapy engine，然后engine将请求添加到scheduler的调度队列，当接到scheduler的响应后engine通知downloader对指定url开始下载数据，完成下载之后，将数据交给spider解析。
 
-在`Field`中，使用`input_processor`和`output_processor`在获取数据后和输出数据前进行自定义处理，而`itemloaders.processors`中提供了`Join`、`MapCompose`和`TakeFirst`三个数据处理方法，其中`Join`和`TakeFirst`用于`output_processor`，顾名思义，这两个方法分别用于将数据列表中的每一项合并后输出，和获取数据列表中的第一项输出。
+所以对于上面需要进行的数据处理，就可以放在spider对downloader下载回来的数据进行解析的时候。
+
+在`Field`中，使用`input_processor`和`output_processor`就可以分别在downloader下载完数据时进行处理，以及在spider解析完数据向后传递给pipeline之前进行处理。而`itemloaders.processors`中提供了`Join`、`MapCompose`和`TakeFirst`三个数据处理方法，其中`Join`和`TakeFirst`用于`output_processor`，顾名思义，这两个方法分别用于将数据列表中的每一项合并后输出，和获取数据列表中的第一项输出。
 
 `MapCompose`方法用于`input_processor`，可以传入多个方法，`MapCompose`会将获取的数据依次传递给这些方法处理，然后将结果交给向后传递。由于获取的原始数据可能是一个列表，比如上面的诗词正文，在详情页中，正文是位于一个`<div>`标签下的多个文本节点组成的，因此通过 scrapy 的 css 选择器得到的是一个列表，假如列表中某一项为空值，而我们指定的处理方法可能无法处理输入值为空的情况，这是便会报错，所以可以在`MapCompose`中指定`stop_on_none=True`来规定遇到空值时停止继续处理。
 

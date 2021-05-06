@@ -10,7 +10,7 @@ categories:
 
 前文中，我们已经成功从诗词详情页爬取到了数据，接下来对数据内容根据需求进行加工处理以及存储。
 
-首先，对标题进行处理，将其改为原标题加上正文第一句的形式。对数据的处理可以通过自定义管道来实现，scrapy 的管道可以将数据一层一层的进行复杂逻辑的处理，每一个管道类都需要返回 item，已保证数据可以在多个管道类之间流动，最后通过 Downloader Middleware 下载器中间件进行存储。
+首先，对标题进行处理，将其改为原标题加上正文第一句的形式。对数据的处理可以通过自定义管道来实现，scrapy 的管道可以将数据一层一层的进行复杂逻辑的处理，每一个管道类都需要返回 item，已保证数据可以在多个管道类之间流动。
 
 使用 scrapy 创建爬虫项目时，会在项目目录下自动创建一个`pipelines.py`文件，其中已经预定义了一个和项目同名的管道类，我们就从这里开始编写数据处理逻辑：
 
@@ -287,7 +287,7 @@ BLOOMFILTER_HASH_SEEDS = [5, 7, 11, 13, 31, 37]
 DUPEFILTER_CLASS = 'zhsc_crawler.dupefilter.RedisBloomDupeFilter'
 ```
 
-最后，在做一些反爬优化，首先可以通过为每个请求添加随机 User-Agent 来伪装不同客户端，现在`settings.py`中添加一组 UA，可以从网上找到很多 UA 信息，然后自定义一个`ZhscRandomUserAgentMiddleware`中间件类：
+最后，在做一些反爬优化，首先可以通过为每个请求添加随机 User-Agent 来伪装不同客户端，要实现这一点可以通过scrapy的`Downloader Middleware`，下载器中间件位于downloader和scrapy engine之间，当engine通知downloader开始从指定url下载数据前，可以在下载器中间件中定义一些预操作。例如，先在`settings.py`中添加一组 UA，可以从网上找到很多 UA 信息，然后自定义一个`ZhscRandomUserAgentMiddleware`中间件类，每当downloader开始下载数据前，都对请求头设置一个随机UA：
 
 ```python
 class ZhscRandomUserAgentMiddleware:
