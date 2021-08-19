@@ -24,8 +24,7 @@ RUN npm i -g hexo-cli nrm --registry=http://registry.npm.taobao.org \
 COPY package*.json ./
 
 RUN npm ci \
- && npm cache clean --force \
- && mv /myblog/node_modules /node_modules
+ && npm cache clean --force
 
 VOLUME /myblog
 
