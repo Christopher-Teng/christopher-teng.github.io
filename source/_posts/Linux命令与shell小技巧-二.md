@@ -199,3 +199,131 @@ find ~ -maxdepth 1 -name '*rc' -exec printf 'RC File: %s\n' {} \;
 ```sh
 find . -name '.git' -prune -o -type f -print
 ```
+
+#### xargs 命令
+
+xargs 命令可以从标准输入读取一系列参数，然后使用这些参数来执行指定命令，因此一般情况下 xargs 都紧跟在管道操作符后面。
+
+xargs 默认使用 echo 命令将从 stdin 读取的数据重新输出，并且会把多行数据转换成单行：
+
+```sh
+cat test
+# 1 2 3
+# 4 5 6
+# 7 8 9
+cat test | xargs
+# 1 2 3 4 5 6 7 8 9
+```
+
+`xargs -n number`可以限制每次调用命令时用到的参数，可以通过这一特性将单行输入转换成多行：
+
+```sh
+cat test1
+# 1 2 3 4 5 6 7 8 9
+cat test1 | xargs -n 3
+# 1 2 3
+# 4 5 6
+# 7 8 9
+```
+
+`xargs -d delimiter`可以指定分隔符。xargs 默认使用空白字符作为分隔符，当遇到文件或是目录名中有空格甚至是换行时，使用默认分隔符来分割输入就会出错：
+
+```sh
+cat test2
+# 1 2 3,4 5 6,7 8 9
+cat test2 | xargs -n 1
+# 1
+# 2
+# 3,4
+# 5
+# 6,7
+# 8
+# 9
+cat test2 | xargs -d , -n 1
+# 1 2 3
+# 4 5 6
+# 7 8 9
+```
+
+xargs 命令常常和 find 命令结合使用，执行一些 find 命令的-exec 参数无法做到的复杂操作，但是如果 find 命令的查找结果中包含空白字符时，直接使用管道操作符传递给 xargs 命令会因为默认分隔符的原因出错，这是可以使用 find 命令的`-print0`参数将查找结果通过 NULL 字符(0)来分隔，然后通过 xargs 命令的`-0`参数来接受，就可以正确处理包含空格的情况：
+
+```sh
+cat "test 1" "test 2" "test 3"
+# test 1
+# test 2
+# test 3
+ls
+# 'test 1' 'test 2' 'test 3'
+find . -name "test *" | xargs cat
+# cat: ./test: No such file or directory
+# cat: 2: No such file or directory
+# cat: ./test: No such file or directory
+# cat: 1: No such file or directory
+# cat: ./test: No such file or directory
+# cat: 3: No such file or directory
+find . -name "test *" | xargs -n 1
+# ./test
+# 1
+# ./test
+# 2
+# ./test
+# 3
+find . -name "test *" -print0 | xargs -0 cat
+# test 1
+# test 2
+# test 3
+```
+
+`xargs -I {} cmd {}`，使用参数`-I`可以指定替换字符串，这个字符串会在 xargs 命令解析输入时被参数替换掉：
+
+```sh
+ls -F
+# 'test 1' 'test 2' 'test 3' test/
+ls ./test
+#
+find . -name "test *" -print0 | xargs -0 mv ./test
+# mv: target './test 3' is not a directory
+find . -name "test *" -print0 | xargs -0 -I {} mv {} ./test
+ls -F
+# test/
+ls ./test
+# 'test 1' 'test 2' 'test 3'
+```
+
+#### tr 命令
+
+tr 是 translate 的缩写，该命令可以对来自标准输入的内容进行字符替换、字符删除和重复字符压缩。
+
+tr 命令只能通过 stdin(标准输入)接受输入(无法通过命令行参数接受)，其调用格式为：`tr [ options ] set1 set2`，来自标准输入的字符会按照位置从 set1 映射到 set2(set1 中的第一个字符映射到 set2 中的第一个字符，set1 中的第二个字符映射到 set2 中的第二个字符，以此类推)，然后将输出写入 stdout(标准输出)。set1 和 set2 是字符类或字符组，如果两者长度不相等，那么 set2 会不断复制 set1 的最后一个字符，直到长度与 set1 相等；如果 set2 的长度大于 set1，则 set2 中长度大于 set1 的那一部分字符会被完全忽略。
+
+`tr 'a-zA-Z' 'n-za-mN-ZA-M'`，这是一个著名加密算法 ROT13 的实现，该替换模式会把字符顺序移动 13 位，文本的加密和解密都是用同一个函数实现：
+
+```sh
+echo 'some messages here' | tr 'a-zA-Z' 'n-za-mN-ZA-M' > test
+cat test
+# fbzr zrffntrf urer
+cat test | tr 'a-zA-Z' 'n-za-mN-ZA-M'
+# some messages here
+```
+
+> tr 命令的参数中，需要定义集合时，只需要使用**“起始字符-终止字符”**的方式，如果起始字符到终止字符不是有效的连续字符序列，则该写法被视为包含 3 个元素的集合(**“起始字符、-、终止字符”**)。
+
+`tr -d set`可以从 stdin 中删除指定集合的字符：
+
+```sh
+cat test
+# som0e me3ssa8ges h60er8e
+cat test | tr -d '0-9'
+# some messages here
+```
+
+`tr -c set1 set2`可以将不在集合 set1 中字符替换成 set2 中的字符，`tr -d -c set1`可以删除所有不在 set1 中的字符：
+
+```sh
+cat test
+# som0e me3ssa8ges h60er8e
+cat test | tr -c 'a-zA-Z \n' '\0'
+# some messages here
+cat test | tr -d -c 'a-zA-Z \n'
+# some messages here
+```
