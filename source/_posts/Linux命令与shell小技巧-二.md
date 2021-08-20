@@ -327,3 +327,99 @@ cat test | tr -c 'a-zA-Z \n' '\0'
 cat test | tr -d -c 'a-zA-Z \n'
 # some messages here
 ```
+
+`tr -s [重复的一组字符]`可以删除字符串中重复出现的指定字符：
+
+```sh
+cat test
+# some   messages     here
+cat test | tr -s ' '
+# some messages here
+cat test1
+# some
+#
+#
+# messages
+#
+#
+#
+#
+#
+# here
+cat test1 | tr -s '\n'
+# some
+# messages
+# here
+```
+
+#### sort 命令
+
+sort 命令可以从特定文件或 stdin 中获取输入，并按指定方式排序后输出到 stdout。
+
+`sort file1 file2 file3`可以对一组文件进行排序
+
+`sort -n file`可以按照数字顺序进行排序
+
+`sort -r file`按照逆序排序
+
+`sort -M file`按照月份排序(一月、二月、三月...)
+
+`sort -m sorted1 sorted2`合并两个已经排序过的文件
+
+`sort -c file`检查文件是否已经排序，如果已经排序则返回为 0 的退出码，否则返回一个非 0 退出码
+
+`sort -k number file`可以按指定列进行排序，如果是单个数字则表示列号，如果是形如`1.3,1.4`则表示区间范围(第一列第三个字符)：
+
+```sh
+cat -n test
+# 1 some
+# 2 messages
+# 3 here
+cat -n test | sort -nrk 1
+# 3 here
+# 2 messages
+# 1 some
+cat -n test | sort -k 2.4,2.5
+# 1 some
+# 3 here
+# 2 messages
+```
+
+`sort -z`，通过-z 参数可以把 sort 的输出传递给 xargs 使用(指定-0)，这样可以避免因为含有空白字符出现错误
+
+#### uniq 命令
+
+uniq 命令可以从给定文件或 stdin 中读取数据，从中找出唯一的行，报告或删除那些行。uniq 只能作用于排过序的数据，因此通常和 sort 命令搭配使用。
+
+`sort file | uniq`会打印文件内容，但是重复的内容只显示一次
+
+`sort file | uniq -u`只显示文件中唯一的行
+
+`sort file | uniq -c`统计文件中各行出现的次数
+
+`sort file | uniq -d`找出文件中重复的行
+
+`uniq -s n -w m`会跳过每行的前 n 个字符，然后使用最多 m 个字符进行比较：
+
+```sh
+cat test
+# u:01:gnu
+# d:04:linux
+# u:01:bash
+# u:01:hack
+sort test | uniq -s 2 -w 2 -c
+# 1 d:04:linux
+# 3 u:01:bash
+# -s 2跳过每行前两个字符，-w 2以接下来的2个字符进行重复判断，即每行中的2位数字，-c统计重复次数
+# 虽然同为u:01:开头的3行内容并不相同，但是这里指定了以每行中的2位数字进行判断，所以统计为u:01:出现了3次
+```
+
+`uniq -z`，通过-z 参数，可以将 uniq 的输出传递给 xargs 使用(指定-0)，这样可以避免因为空白字符出现错误
+
+#### mktemp 命令
+
+`filename=$(mkdtemp)`可以创建临时文件，并将文件名存入变量
+
+`dirname=$(mktemp -d)`可以创建临时目录，并将目录名存入变量
+
+`mktemp -u`只生成临时文件名，但不创建实际文件或目录
