@@ -1,15 +1,14 @@
 FROM node:14.17.5-slim
 
 RUN sed -i "s/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g" /etc/apt/sources.list \
-    sed -i "s|security.debian.org/debian-security|mirrors.ustc.edu.cn/debian-security|g" /etc/apt/sources.list \
+    && sed -i "s|security.debian.org/debian-security|mirrors.ustc.edu.cn/debian-security|g" /etc/apt/sources.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 
-ENV TINI_VERSION v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+COPY tini /
 RUN chmod a+x /tini
 
 WORKDIR /myblog

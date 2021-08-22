@@ -14,9 +14,9 @@ categories:
 Linux Shell 脚本攻略（第 3 版）—— 门佳 译
 {% endblockquote %}
 
-### 常用命令
+## 常用命令
 
-#### cat 命令
+### cat 命令
 
 `cat file1 file2 file3 ...`将多个文件内容进行拼接并显示到 stdout。
 
@@ -71,7 +71,7 @@ echo -e "test\n\ntest\n\ntest" | cat -nb
 # 3 test
 ```
 
-#### find 命令
+### find 命令
 
 `find base_path`列出给定目录下的所有文件和子目录
 
@@ -200,7 +200,7 @@ find ~ -maxdepth 1 -name '*rc' -exec printf 'RC File: %s\n' {} \;
 find . -name '.git' -prune -o -type f -print
 ```
 
-#### xargs 命令
+### xargs 命令
 
 xargs 命令可以从标准输入读取一系列参数，然后使用这些参数来执行指定命令，因此一般情况下 xargs 都紧跟在管道操作符后面。
 
@@ -290,7 +290,7 @@ ls ./test
 # 'test 1' 'test 2' 'test 3'
 ```
 
-#### tr 命令
+### tr 命令
 
 tr 是 translate 的缩写，该命令可以对来自标准输入的内容进行字符替换、字符删除和重复字符压缩。
 
@@ -352,7 +352,7 @@ cat test1 | tr -s '\n'
 # here
 ```
 
-#### sort 命令
+### sort 命令
 
 sort 命令可以从特定文件或 stdin 中获取输入，并按指定方式排序后输出到 stdout。
 
@@ -387,7 +387,7 @@ cat -n test | sort -k 2.4,2.5
 
 `sort -z`，通过-z 参数可以把 sort 的输出传递给 xargs 使用(指定-0)，这样可以避免因为含有空白字符出现错误
 
-#### uniq 命令
+### uniq 命令
 
 uniq 命令可以从给定文件或 stdin 中读取数据，从中找出唯一的行，报告或删除那些行。uniq 只能作用于排过序的数据，因此通常和 sort 命令搭配使用。
 
@@ -416,7 +416,7 @@ sort test | uniq -s 2 -w 2 -c
 
 `uniq -z`，通过-z 参数，可以将 uniq 的输出传递给 xargs 使用(指定-0)，这样可以避免因为空白字符出现错误
 
-#### mktemp 命令
+### mktemp 命令
 
 `filename=$(mkdtemp)`可以创建临时文件，并将文件名存入变量
 
@@ -424,7 +424,7 @@ sort test | uniq -s 2 -w 2 -c
 
 `mktemp -u`只生成临时文件名，但不创建实际文件或目录
 
-#### %、%%、#和##操作符
+### %、%%、#和##操作符
 
 `${VAR%.*}`从字符串中删除位于%右侧的通配符所匹配的所有字符，通配符从右向左匹配。%属于非贪婪(non-greedy)操作，而%%属于贪婪匹配：
 
@@ -477,7 +477,7 @@ ls
 # IMG-1.png IMG-2.jpg IMG-3.jpg
 ```
 
-#### parallel 命令
+### parallel 命令
 
 parallel 命令从 stdin 中读取文件列表，用类似 find 的-exec 或者 xargs 的方式来使用指定命令处理文件，其中{}替代要处理的文件名，{.}替代无扩展名的文件名。parallel 命令可以优化系统资源使用，在同时处理大量文件时，可以避免系统过载。
 
@@ -497,9 +497,9 @@ ls
 # test1New.txt test2New.txt test3New.txt
 ```
 
-### 文件操作
+## 文件操作
 
-#### dd 命令
+### dd 命令
 
 dd 命令会克隆给定的输入内容，然后将一模一样的一份副本写入输出。stdin、设备文件、输入文件等都可以作为输入，stdout、设备文件、普通文件等也可以作为输出。
 
@@ -514,7 +514,7 @@ bs 支持的单位如下：
 - M 兆字节(1024KB)
 - G 吉字节(1024MB)
 
-#### chmod 命令
+### chmod 命令
 
 `chmod u=rwx g=rwx o=rwx filename`使用 u(User)、g(Group)和 o(Other)分别为用户、用户组和其他用户设置权限
 
@@ -526,13 +526,13 @@ bs 支持的单位如下：
 
 `chmod 777 . -R`对当前目录递归的设置读写执行权限
 
-#### chown 命令
+### chown 命令
 
 `chown user:group filename`修改文件所属用户和用户组
 
 `chown user:group . -R`对当前目录递归的设置用户和用户组
 
-#### touch 命令
+### touch 命令
 
 `touch filename`可以生成空白文件
 
@@ -545,13 +545,13 @@ done
 
 批量生成名字为 1.txt 到 100.txt 的空白文件。如果文件不存在则会新创建文件，如果文件已经存在，则会将文件的所有时间戳更新为当前时间。可以通过参数`-a`只更新访问时间、参数`-m`只更新修改时间、参数`-d`可以将时间戳修改为指定时间而不是当前时间。
 
-#### ln -s 命令
+### ln -s 命令
 
 ln -s 命令用来创建符号链接，类似 windows 的快捷方式，格式为：
 
 `ln -s target symbolic_link_name`
 
-#### 环回文件
+### 环回文件
 
 Linux 文件系统通常位于磁盘或 U 盘上，但其实文件也可以作为文件系统进行挂在，这种存在于文件中的文件系统可用于测试、文件系统定制或者作为机密信息的加密盘。
 
@@ -579,7 +579,7 @@ Linux 文件系统通常位于磁盘或 U 盘上，但其实文件也可以作�
 
    `umount /mnt/loopback`
 
-#### diff 命令
+### diff 命令
 
 diff 命令可以用来比较两个文件之间的差异，也可以利用修补文件(patch file)将两个文件同步。
 
@@ -591,7 +591,7 @@ diff 命令可以用来比较两个文件之间的差异，也可以利用修补
 
 `patch -p2 version2 < version.patch`则使用修补文件修补 version2 使 version2 与 version1 文件一致，再次使用同样的方式修补则会撤销之前的修补。
 
-#### head 和 tail 命令
+### head 和 tail 命令
 
 `head file`读取文件前 10 行进行显示，参数`-n`可以指定要显示的行数，如果行数是一个负数，则打印除指定行以前的所有行
 
@@ -599,7 +599,7 @@ diff 命令可以用来比较两个文件之间的差异，也可以利用修补
 
 `tail -f file`会监视文件的增长并将更新内容显示出来，该用法常常用于跟踪日志文件。
 
-#### pushd 和 popd 命令
+### pushd 和 popd 命令
 
 pushd 和 popd 可以用来替代 cd 命令，这对命令用于在多个目录之间切换而无需重新输入目录路径，这两条命令会创建一个路径栈，该路径栈是一个保存了已访问目录的 LIFO(Last In First Out，后进先出)列表。
 
@@ -624,7 +624,7 @@ dirs
 # ~/Documents/test
 ```
 
-#### wc 命令
+### wc 命令
 
 `wc -l file`统计文件中的行数
 
@@ -651,7 +651,7 @@ echo -e '1\n12\n123\n1234\n12345' | wc -L
 # 5
 ```
 
-#### tree 命令
+### tree 命令
 
 tree 命令可以用图形化树状结构打印出文件和目录。
 
