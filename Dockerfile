@@ -1,20 +1,16 @@
 FROM node:14.17.5-slim
 
-ARG UID=1000 \
-    GID=1000
-
-ENV TINI_VERSION=v0.19.0 \
-    PORT=4000
-
 RUN sed -i "s/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g" /etc/apt/sources.list \
+    sed -i "s|security.debian.org/debian-security|mirrors.ustc.edu.cn/debian-security|g" /etc/apt/sources.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-ADD https://github.com.cnpmjs.org/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 
-RUN chmod +x /tini
+ENV TINI_VERSION v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod a+x /tini
 
 WORKDIR /myblog
 
@@ -29,8 +25,8 @@ RUN npm ci \
 
 VOLUME /myblog
 
-EXPOSE $PORT
+ENV PORT 4000
 
-USER $UID:$GID
+EXPOSE 4000
 
-CMD ["/tini","--","hexo","serve"]
+CMD ["/tini", "--", "hexo", "serve"]
