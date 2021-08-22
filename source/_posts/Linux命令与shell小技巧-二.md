@@ -423,3 +423,240 @@ sort test | uniq -s 2 -w 2 -c
 `dirname=$(mktemp -d)`可以创建临时目录，并将目录名存入变量
 
 `mktemp -u`只生成临时文件名，但不创建实际文件或目录
+
+#### %、%%、#和##操作符
+
+`${VAR%.*}`从字符串中删除位于%右侧的通配符所匹配的所有字符，通配符从右向左匹配。%属于非贪婪(non-greedy)操作，而%%属于贪婪匹配：
+
+```sh
+file_jpg='sample.jpg'
+echo ${file_jpg%.*}
+# sample
+filename='back.fun.book.txt'
+echo ${filename%.*}
+# back.fun.book
+echo ${filename%%.*}
+# back
+```
+
+`${VAR#*.}`和%效果相反，只不过会删除位于#左边通配符匹配到的所有字符，匹配方向为从左向右，同样的，#为非贪婪匹配，##为贪婪匹配。
+
+```sh
+echo $file_jpg
+# sample.jpg
+echo ${file_jpg#*.}
+# jpg
+echo filename
+# back.fun.book.txt
+echo ${filename#*.}
+# fun.book.txt
+echo ${filename##*.}
+# txt
+```
+
+%、%%、#、##常用来分隔文件名和文件扩展名，也可以用来分隔 URL 地址获取协议、域名、主机名等等。
+
+> 考虑到文件名中可能含有多个.，因此提取文件扩展名时更多的是使用##进行贪婪匹配
+
+批量重命名文件：
+
+```sh
+ls
+# back.jpg fun.png book.jpg
+cat rename.sh
+# count=1
+# for img in `find . -maxdepth 1 -type f -iname '*.jpg' -o -iname '*.png'`
+# do
+#     new=IMG-$count.${img##*.}
+#     echo "Rename $img to $new"
+#     mv $img $new
+#     let count++
+# done
+. ./rename.sh
+ls
+# IMG-1.png IMG-2.jpg IMG-3.jpg
+```
+
+#### parallel 命令
+
+parallel 命令从 stdin 中读取文件列表，用类似 find 的-exec 或者 xargs 的方式来使用指定命令处理文件，其中{}替代要处理的文件名，{.}替代无扩展名的文件名。parallel 命令可以优化系统资源使用，在同时处理大量文件时，可以避免系统过载。
+
+```sh
+ls
+# test1.txt test2.txt test3.txt
+cat test1.txt test2.txt test3.txt
+# test 1
+# test 2
+# test 3
+find . -type f -name 'test*' | parallel cat {}
+# test 1
+# test 2
+# test 3
+find -type f -name 'test*' | parallel mv {} {.}New.txt
+ls
+# test1New.txt test2New.txt test3New.txt
+```
+
+### 文件操作
+
+#### dd 命令
+
+dd 命令会克隆给定的输入内容，然后将一模一样的一份副本写入输出。stdin、设备文件、输入文件等都可以作为输入，stdout、设备文件、普通文件等也可以作为输出。
+
+`dd if=/dev/zero of=file bs=1M count=1`会生成一个内容为空的 1M 大小的文件。其中，if 代表输入(input file)，/dev/zero 是一个特殊的字符设备，会返回 0 值字节(\0)；of 代表输入(output file)，bs 代表以字节为单位的块大小(block size)，count 代表需要被复制的块数量。如果将命令中的 bs 改为 2M，count 改为 2，则会生成一个内容为空的 4M 大小的文件。如果省略 if 则会从 stdin 读取输入，而省略 of 则会将结果输出到 stdout。
+
+bs 支持的单位如下：
+
+- c 字节(B)
+- w 字(2B)
+- B 块(512B)
+- K 千字节(1024B)
+- M 兆字节(1024KB)
+- G 吉字节(1024MB)
+
+#### chmod 命令
+
+`chmod u=rwx g=rwx o=rwx filename`使用 u(User)、g(Group)和 o(Other)分别为用户、用户组和其他用户设置权限
+
+`chmod a+x`为所有用户添加执行权限
+
+`chmod a-x`为所有用户删除执行权限
+
+`chmod 777`为所有用户设置读写执行权限(r=4 w=2 x=1)
+
+`chmod 777 . -R`对当前目录递归的设置读写执行权限
+
+#### chown 命令
+
+`chown user:group filename`修改文件所属用户和用户组
+
+`chown user:group . -R`对当前目录递归的设置用户和用户组
+
+#### touch 命令
+
+`touch filename`可以生成空白文件
+
+```sh
+for name in {1...100}.txt
+do
+  touch $name
+done
+```
+
+批量生成名字为 1.txt 到 100.txt 的空白文件。如果文件不存在则会新创建文件，如果文件已经存在，则会将文件的所有时间戳更新为当前时间。可以通过参数`-a`只更新访问时间、参数`-m`只更新修改时间、参数`-d`可以将时间戳修改为指定时间而不是当前时间。
+
+#### ln -s 命令
+
+ln -s 命令用来创建符号链接，类似 windows 的快捷方式，格式为：
+
+`ln -s target symbolic_link_name`
+
+#### 环回文件
+
+Linux 文件系统通常位于磁盘或 U 盘上，但其实文件也可以作为文件系统进行挂在，这种存在于文件中的文件系统可用于测试、文件系统定制或者作为机密信息的加密盘。
+
+下面在一个大小为 1GB 的文件中创建 ext4 文件系统并进行挂在：
+
+1. 使用 dd 命令创建一个 1GB 大小的文件
+
+   `dd if=/dev/zero of=loopbackfile.img bs=1G count=1`
+
+2. 用 mkfs 命令将 1GB 的文件格式化为 ext4 文件系统
+
+   `mkfs.ext4 loopbackfile.img`
+
+3. 使用 file 命令检查文件系统
+
+   `file loopbackfile.img`
+
+4. 使用 mkdir 创建挂载点并挂载环回文件
+
+   `mkdir /mnt/loopback && mount -o loop loopbackfile.img /mnt/loopback`
+
+   选项`-o loop`用来指定挂载环回文件
+
+5. 使用下面的方式卸载
+
+   `umount /mnt/loopback`
+
+#### diff 命令
+
+diff 命令可以用来比较两个文件之间的差异，也可以利用修补文件(patch file)将两个文件同步。
+
+`diff -u version1 version2`显示两个文件之间的差异，选项`-u`指定输出为一体化显示，更易于阅读。
+
+`diff -u version1 version2 > version.patch`生成修补文件
+
+`patch -p1 version1 < version.patch`使用修补文件修补 version1 使 version1 与 version2 文件一致，修补之后再次使用同样的方式进行修补则会撤销之前的修补。
+
+`patch -p2 version2 < version.patch`则使用修补文件修补 version2 使 version2 与 version1 文件一致，再次使用同样的方式修补则会撤销之前的修补。
+
+#### head 和 tail 命令
+
+`head file`读取文件前 10 行进行显示，参数`-n`可以指定要显示的行数，如果行数是一个负数，则打印除指定行以前的所有行
+
+`tail file`读取文件的最后 10 行进行显示，参数`-n`可以指定要显示的行数，如果行数指定为形如`+M`的模式，则显示除 M-1 行(从第 M 行到结尾)的所有行。
+
+`tail -f file`会监视文件的增长并将更新内容显示出来，该用法常常用于跟踪日志文件。
+
+#### pushd 和 popd 命令
+
+pushd 和 popd 可以用来替代 cd 命令，这对命令用于在多个目录之间切换而无需重新输入目录路径，这两条命令会创建一个路径栈，该路径栈是一个保存了已访问目录的 LIFO(Last In First Out，后进先出)列表。
+
+```sh
+dirs  # 显示已访问目录路径栈内容
+# ~
+pushd ./Documents  # 压入并切换路径
+dirs
+# ~/Documents ~
+pushd ./test
+dirs
+# ~/Documents/test ~/Documents ~
+pushd +0  # 切换目录并更新已访问目录路径栈
+dirs
+# ~ ~/Documents/test ~/Documents
+# pushd总是向路径栈中压入目录
+popd  # 删除最近压入的路径并切换到下一个目录
+dirs
+# ~/Documents/test ~/Documents
+popd +0  # 删除路径栈中特定的路径
+dirs
+# ~/Documents/test
+```
+
+#### wc 命令
+
+`wc -l file`统计文件中的行数
+
+`wc -w file`统计单词数
+
+`wc -c file`统计字符数
+
+```sh
+echo '1234' | wc -c
+# 5
+echo -n '1234' | wc -c
+# 4
+# echo默认添加换行符，-n参数指定不添加
+```
+
+`wc file`不指定参数时，会同时打印出行数、单词书和字符数
+
+`wc -L file`打印出文件中最长一行的长度
+
+```sh
+echo -e '1\n12\n123\n1234\n12345' | wc
+# 5 5 20
+echo -e '1\n12\n123\n1234\n12345' | wc -L
+# 5
+```
+
+#### tree 命令
+
+tree 命令可以用图形化树状结构打印出文件和目录。
+
+`tree path -P PATTERN`可以只显示匹配指定模式的文件
+
+`tree path -I PATTERN`可以只显示不匹配指定模式的文件
+
+`tree -h`可以同时打印出文件和目录的大小
