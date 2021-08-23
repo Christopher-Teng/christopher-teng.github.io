@@ -370,3 +370,150 @@ awk 还有一些内建的字符串处理函数：
   和 sub 类似，但是替换所有匹配
 - match(regex,string)
   检查正则表达式是否可以在字符串 string 中找到匹配。如果能够找到，返回退出码 0，否则返回非 0 退出码
+
+  ### paste命令
+
+  paste命令可以按列合并文件，并且可以使用参数`-d`指定输出分隔符，默认的分隔符是制表符(\t)，参数`-s`可以先将所有列合并成单行在合并连个文件
+
+  ```sh
+  cat test1
+  # 123
+  # xxx
+  # 456
+  # abc
+  # 789
+  # xxx
+  cat test2
+  # xxx
+  # 789
+  # abc
+  # 456
+  # xxx
+  # 123
+  paste -s -d , test1 test2
+  # 123,xxx,456,abc,789,xxx
+  # xxx,789,abc,456,xxx,123
+  paste test1 test2
+  # 123     xxx
+  # xxx     789
+  # 456     abc
+  # abc     456
+  # 789     xxx
+  # xxx     123
+  ```
+
+  ### ${variable_name:start_position:length} 文本切片
+
+  我们可以通过指定文本字符串起始位置和截取长度，从文本字符串中生成子串：
+
+  ```sh
+  echo $test
+  # xxx
+  # 789
+  # abc
+  # 456
+  # xxx
+  # 123
+  echo ${test:4:3}
+  # 789
+  echo ${test:4:-4}
+  # 789
+  # abc
+  # 456
+  # xxx
+  ```
+
+  ## 从网络获取数据
+
+  ### wget命令
+
+  wget命令可以下载网页或者远程文件。
+
+  `wget URL`从指定网址下载页面，或者`wget URL1 URL2 URL3 ...`从多个URL处下载
+
+  `wget URL -O filename`可以指定下载后文件的名字，如果存在同名文件，则原文件会被下载文件覆盖
+
+  `wget URL -o log`则可以指定将日志或进度信息写入指定日志文件，而不输出到stdout
+
+  `wget -t time URL`可以指定下载失败时，进行多少次尝试再放弃下载，如果设为0即强制不断的尝试下载直到下载完成
+
+  `wget --limit-rate rate URL`可以对下载进行限速，单位可以使用千字节(K)和兆字节(m)
+
+  `wget -Q quota URL`可以限制下载最大配额，单位同样支持千字节(k)和兆字节(m)，一旦下载大小超出限额则放弃下载
+
+  `wget -c URL`可以对下载完成前被中断的下载进行断点续传
+
+  `wget --user username --password password URL`可以用于需要进行认证的网站
+
+  ### curl命令
+
+  curl命令可以使用HTTP、HTTPS、FTP协议在客户端和服务器之间传递数据，支持POST、cookie、认证、从指定偏移处下载部分文件、参照页(referer)、用户代理字符串、扩展头部、限速、文件大小限制、进度条等特性。常用于网站维护、数据检索以及服务器配置核对。
+
+  curl默认将下载文件输出到stdout，将进度信息输出到stderr，可以使用参数`--silent`关闭进度显示。
+
+  `curl URL`将下载信息输出到stdout
+
+  `curl URL --silent -O`关闭进度输出，并且通过参数`-O`将下载数据写入文件，文件名采用从URL中解析出的文件名，因此这里的URL必须是完整的(www.example.com/index.html)，而不是仅有站点域名
+
+  `curl URL -o filename`则可以用指定文件名来存储下载数据，因此此处的URL可以只是站点的域名
+
+  `curl URL --progress`可以在下载过程中显示形如**#**的进度条
+
+  `curl URL -C offset`可以进行断点续传，需要指明偏移量，将offset写为`-`则可以让curl自动计算因该从哪里开始续传
+
+  `curl --referer Referer_URL target_URL`可以指定参照页，只有HTTP头部字段中**参照页(Referer)**符合指定地址时，才会从目标地址进行下载
+
+  `curl URL --cookie "key1=value1;key2=value2"`可以指定和存储下载过程中产生的cookie
+
+  `curl URL --cookie-jar cookie_file`可以将所有cookie存入文件
+
+  `curl URL --user-agent UA`或者`curl URL -A UA`可以设置用户代理字符串
+
+  `curl -H "key:value" -H "key:value" URL`可以发送多个HTTP头部(header)信息
+
+  `curl URL --limit-rate rate`可以限速，用法和wget一样
+
+  `curl URL --max-filesize size`可以限额，用法和wget一样，如果大小超出限额，则命令返回非0退出码，否则返回0退出码
+
+  `curl -u username:password URL`可以进行认证，用法和wget一样
+
+  `curl -I URL`或者`curl --head URL`可以只下载头部信息而不下载完整的页面
+
+  ### 网络图片爬取及下载
+
+  下面综合利用上述命令，编写一个网络图片爬取及下载的脚本：
+
+  ```sh img_downloader.sh
+  #!/bin/bash
+  # 用途：图片下载工具
+  # 文件名： img_downloader.sh
+  if [ $# -ne 3 ]
+  then
+    echo "Usage: $0 URL -d DIRECTORY"
+    exit -1
+  fi
+
+  while [ $# -gt 0 ]
+  do
+    case $1 in
+    -d) shift; directory=$1; shift ;;
+    *) url=$1; shift ;;
+    esac
+  done
+
+  mkdir -p $directory;
+  baseurl=$(echo $url | egrep -o "https?://[a-z.\-]+")
+
+  echo Downloading $url
+  curl -s $url | egrep -o "<img[^>]*src=[^>]*>" | \
+    sed 's/<img[^>]*src=\"\([^"]*\).*/\1/g' | \
+    sed "s,^/,$baseurl/," > /tmp/$$.list
+
+  cd $directory;
+
+  while read filename;
+  do
+    echo Downloading $filename
+    curl -s -O "$filename" --silent
+  done < /tmp/$$.list
+  ```
