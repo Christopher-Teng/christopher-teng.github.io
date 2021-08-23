@@ -267,127 +267,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Linux命令与shell小技巧(三)</title>
-    <url>/2021/08/22/Linux%E5%91%BD%E4%BB%A4%E4%B8%8Eshell%E5%B0%8F%E6%8A%80%E5%B7%A7-%E4%B8%89/</url>
-    <content><![CDATA[<p>本文搜集记录了一些 Linux 下的命令和 shell 脚本使用技巧，内容主要来自：</p>
-<blockquote><p>Linux Shell 脚本攻略（第 3 版）—— 门佳 译</p>
-<footer><strong>[USA] Clif Flynt [IND] Sarath Lakshman [IND] Shantanu Tushar</strong><cite>Linux Shell Scripting Cookbook</cite></footer></blockquote>
-<h2 id="文本操作"><a href="#文本操作" class="headerlink" title="文本操作"></a>文本操作</h2><h3 id="grep-命令"><a href="#grep-命令" class="headerlink" title="grep 命令"></a>grep 命令</h3><p><code>echo -e &quot;this is a word\nnext line&quot; | grep word</code>使用 grep 从标准输入中搜索匹配特定模式的文本行</p>
-<p><code>grep pattern file</code>或<code>grep &quot;pattern&quot; file</code>从文件中搜索匹配特定模式的文本行</p>
-<p><code>grep &quot;pattern&quot; file1 file2 file3</code>同时从多个文件中搜索</p>
-<p><code>grep --color=auto &quot;pattern&quot; file</code>在输出中着重标记出匹配到的模式，参数—color 对在命令中的放置位置没有强制要求，但是通常作为第一个选项出现</p>
-<p><code>grep -E &quot;[a-z]+&quot; file</code>或者<code>egrep &quot;[a-z]+&quot; file</code>使用扩展的正则表达式进行搜索，而 grep 默认使用基础正则表达式</p>
-<p><code>grep -o &quot;pattern&quot; file</code>只输出匹配到的文本</p>
-<p><code>grep -v &quot;pattern&quot; file</code>输出不匹配的所有行</p>
-<p><code>grep -c &quot;pattern&quot; file</code>统计成功匹配的文本行数，加上参数<code>-v</code>可以反转匹配结果，统计不匹配的文本行数</p>
-<blockquote>
-<p>使用<code>-c</code>参数只是统计出成功匹配的文本行数，而不是匹配的次数，如果要统计匹配的次数，可以使用如下的技巧：</p>
-<p><code>grep -o &quot;pattern&quot; | wc -l</code></p>
-</blockquote>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">egrep -c <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line">egerp -o <span class="string">&quot;[0-9+]&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1</span></span><br><span class="line"><span class="comment"># 2</span></span><br><span class="line"><span class="comment"># 3</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 5</span></span><br><span class="line"><span class="comment"># 6</span></span><br><span class="line">egrep -o <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span> | wc -l</span><br><span class="line"><span class="comment"># 6</span></span><br></pre></td></tr></table></figure>
-<span id="more"></span>
-<p><code>grep -n &quot;pattern&quot; file</code>可以显示出匹配行的行号，<code>grep -n &quot;pattern&quot; file1 file2</code>如果有多个文件时，会加上文件名和行号</p>
-<p><code>grep -b &quot;pattern&quot; file</code>输出匹配行的偏移量，<code>grep -bo &quot;pattern&quot; file</code>则会输出匹配结果的偏移量，偏移量是从 0 开始计算的</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">egrep -b <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 0:1wds</span></span><br><span class="line"><span class="comment"># 5:2sdsad</span></span><br><span class="line"><span class="comment"># 12:3sds4sd</span></span><br><span class="line"><span class="comment"># 20:5dsd6da</span></span><br><span class="line">egrep -bo <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 0:1</span></span><br><span class="line"><span class="comment"># 5:2</span></span><br><span class="line"><span class="comment"># 12:3</span></span><br><span class="line"><span class="comment"># 16:4</span></span><br><span class="line"><span class="comment"># 20:5</span></span><br><span class="line"><span class="comment"># 24:6</span></span><br></pre></td></tr></table></figure>
-<p><code>grep -l &quot;pattern&quot; file1 file2</code>列出匹配成功的文件列表，<code>grep -L &quot;pattern&quot; file1 file2</code>则列出没有匹配的文件列表</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat test1</span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">cat test2</span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 56</span></span><br><span class="line">egrep -l <span class="string">&quot;[a-z]+&quot;</span> test1 test2</span><br><span class="line"><span class="comment"># test1</span></span><br><span class="line">egrep -L <span class="string">&quot;[a-z]+&quot;</span> test1 test2</span><br><span class="line"><span class="comment"># test2</span></span><br></pre></td></tr></table></figure>
-<p><code>grep &quot;pattern&quot; path -R</code>会在指定路径中递归的搜索</p>
-<p><code>grep -i &quot;pattern&quot; file</code>搜索时忽略大小写</p>
-<p><code>grep -e &quot;pattern1&quot; -e &quot;pattern2&quot; file</code>可以同时指定多个匹配模式</p>
-<p><code>grep -f pattern_file file</code>可以从文件中读取匹配模式(一个匹配模式一行)，然后进行搜索</p>
-<p><code>grep &quot;pattern&quot; path -R --include &quot;pattern&quot;</code>可以在搜索过程中用通配符指定某些文件，相反的，参数<code>--exclude</code>在搜索过程中使用通配符排除某些文件，<code>--exclude-dir</code>可以排除目录</p>
-<p><code>grep -Z &quot;pattern&quot; file</code>可以使用 0 值字符(\0)作为文件名的终结符，结合参数<code>-l</code>或<code>-L</code>可以搜索出特定文件，然后传递给 xargs 执行下一步操作：</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">grep <span class="string">&quot;pattern&quot;</span> -lZ . -R | xargs -0 rm</span><br></pre></td></tr></table></figure>
-<p><code>grep -q &quot;pattern&quot; file</code>使用静默模式搜索，不会输出搜索结果，只会在执行搜索后返回退出码，执行成功返回退出码 0，否则返回非 0 退出码</p>
-<p><code>grep -A n &quot;pattern&quot; file</code>可以输出匹配行以及之后的 n 行，<code>grep -B n &quot;pattern&quot; file</code>可以输出匹配行和之前的 n 行</p>
-<p><code>grep -A n -B m &quot;pattern&quot; file</code>可以输出匹行以及之前的 m 行和之后的 n 行</p>
-<p><code>grep -C n &quot;pattern&quot; file</code>可以输出匹配行和前后 n 行</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -A 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -B 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line">grep -C 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -A 2 -B 1 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
-<h3 id="cut-命令"><a href="#cut-命令" class="headerlink" title="cut 命令"></a>cut 命令</h3><p>cut 命令按列，而不是按行切分文件，可用于处理使用固定宽度字段的文件、CSV 文件或是由空格分隔的文件(例如标准日志文件)</p>
-<p><code>cut -f FIELD_LIST filename</code>提取指定字段，FIELD_LIST 是需要显示的列，由列号组成，彼此之间用逗号分隔，例如 <code>cut -f 2,3 test</code> 将提取 test 文件中的第 2 列和第 3 列</p>
-<p><code>cut -f FIELD_LIST --complement filename</code>可以显示出没有被 FIELD_LIST 指定的字段</p>
-<p><code>cut -f FIELD_LIST -d delimiter filename</code>可以使用指定的分隔符提取字段</p>
-<p>FIELD_LIST 除了使用列号和逗号的方式指定以外，还可以使用一种更简便的方式：</p>
-<ul>
-<li>N-<br>从第 N 个开始到行尾</li>
-<li>N-M<br>从第 N 个开始到第 M 个(包含第 M 个)</li>
-<li>-M<br>从行首到第 M 个(包含第 M 个)</li>
-</ul>
-<p>除了使用字段(空白符分隔)对列提取外，还可以指定其他的提取方式：</p>
-<ul>
-<li>-b 表示字节</li>
-<li>-c 表示字符</li>
-</ul>
-<p><code>--output-delimiter</code>可以指定输出分隔符，在显示多组数据时尤其有用</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">cat <span class="built_in">test</span> | cut -c 1,3</span><br><span class="line"><span class="comment"># xx</span></span><br><span class="line"><span class="comment"># 13</span></span><br><span class="line"><span class="comment"># ac</span></span><br><span class="line"><span class="comment"># 13</span></span><br><span class="line"><span class="comment"># xx</span></span><br><span class="line">cat <span class="built_in">test</span> | cut -c 1,3 --output-delimiter <span class="string">&quot; -- &quot;</span></span><br><span class="line"><span class="comment"># x -- x</span></span><br><span class="line"><span class="comment"># 1 -- 3</span></span><br><span class="line"><span class="comment"># a -- c</span></span><br><span class="line"><span class="comment"># 1 -- 3</span></span><br><span class="line"><span class="comment"># x -- x</span></span><br></pre></td></tr></table></figure>
-<h3 id="sed-命令"><a href="#sed-命令" class="headerlink" title="sed 命令"></a>sed 命令</h3><p>sed 命令是 stream editor(流编辑器)的缩写，常常用于文本替换。</p>
-<p><code>cat file | sed &#39;s/pattern/replace_string/&#39;</code>使用简单的字符串或正则表达式进行匹配，并替换为新的字符串</p>
-<p><code>sed -i &#39;s/pattern/replace_string/&#39; file</code>可以用修改后的数据替换原文件，sed 默认操作是将替换后的结果输出而不替换原文件</p>
-<p><code>sed -i &#39;s/pattern/replace_string/g&#39; file</code>替换全部匹配的内容，sed 默认只替换首次匹配到的内容，如果是用类似 Ng 的形式，则指定替换第 N 次匹配的内容</p>
-<p><code>sed -i &#39;s|pattern|replace_string|&#39; file</code>使用|作为命令的分隔符，sed 将 s 后的符号视作分隔符，因此可以方便的改变默认分隔符/，如果模式或者替换内容中出现分隔符则因该对其使用\进行转义</p>
-<p><code>sed -i &#39;/^$/d&#39; file</code>使用/d 而不是 s/对匹配内容进行删除而不是替换，正则表达式^$匹配空行，因此该条命令会删除文件中的所有空行</p>
-<p><code>sed -i.bak &#39;s/pattern/replace_string/&#39; file</code>可以在替换文件的同时为原文件生成一个.bak 后缀的备份文件</p>
-<p>参数<code>&amp;</code>指代模式所匹配到的字符串：</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">sed <span class="string">&#x27;s/[a-z]\+/[&amp;]/g&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># [xxx]</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># [abc]</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># [xxx]</span></span><br></pre></td></tr></table></figure>
-<p>参数<code>\N</code>用来指代第 N 个子模式(出现在括号中的正则表达式)匹配的结果：</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">sed <span class="string">&#x27;s/\(^[0-9]\)\([0-9]\)\([0-9]$\)/\2\2\2/g&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 222</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 555</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 888</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
-<p>可以使用管道命令组合多个 sed 命令<br><code>cat file | sed &#39;s/pattern1/replace_string/g&#39; | sed &#39;s/pattern2/replace_string/g&#39;</code>，<br>等同于使用分号分隔多个模式<br><code>cat file | sed &#39;s/pattern1/replace_string/g;s/pattern2/replace_string/g&#39;</code>，<br>也等同于使用<code>-e</code>参数指定多个匹配模式<br><code>cat file | sed -e &#39;s/pattern1/replace_string/g&#39; -e &#39;s/pattern2/replace_string/g&#39;</code></p>
-<p>sed 命令通常使用单引号来引用，如果要在 sed 命令的表达式中使用变量，则可以使用双引号，shell 在调用 sed 前会先扩展双引号中的内容</p>
-<h3 id="awk-命令"><a href="#awk-命令" class="headerlink" title="awk 命令"></a>awk 命令</h3><p>awk 命令可以处理数据流，支持关联数组、递归函数、条件语句等高级功能。</p>
-<p>awk 脚本的结构如下：</p>
-<p><code>awk &#39;BEGIN &#123; commands &#125; PATTERN &#123; commands &#125; END &#123; commands &#125;&#39; file</code>，其中 file 也可以是 stdin 中的输入</p>
-<p>awk 脚本通常由以上三部分构成：BEGIN、END 以及带模式匹配选项的公共语句块(common statement block)，这三个部分都是可选的，可以不出现在脚本中。</p>
-<p>awk 以逐行的形式处理文件。BEGIN 之后的命令先于公共语句块执行，对于匹配 PATTERN 的行，awk 会对其执行 PATTERN 之后的命令，最后，在处理完整个文件之后，awk 会执行 END 之后的命令。</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">awk <span class="string">&#x27;BEGIN &#123;i=0&#125; &#123;i++;print i&#125; END &#123;print &quot;total: &quot; i&#125;&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1</span></span><br><span class="line"><span class="comment"># 2</span></span><br><span class="line"><span class="comment"># 3</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 5</span></span><br><span class="line"><span class="comment"># 6</span></span><br><span class="line"><span class="comment"># total: 6</span></span><br></pre></td></tr></table></figure>
-<p>上面的 awk 脚本打印出文件中的行号以及总行数，可以看出，awk 的工作流程为：</p>
-<ol>
-<li>首先执行 BEGIN { commands }语句块中的语句，由于 BEGIN 语句块在 awk 开始从输入流中读取行之前被执行，因此通常用来做诸如变量初始化、打印输出表格的表头等等，该语句块也可以被省略</li>
-<li>接着从文件或者 stdin 中读取一行，如果能够匹配 PATTERN，则执行后面的 commands，重复这一过程直到全部读取完成</li>
-<li>当读至输入流末尾时，执行 END { commands }语句块，END 语句块和 BEGIN 类似，它在 awk 读取完输入流中所有行后才被执行，因此通常用来做一些收尾工作，比如打印数据处理结果，该语句块也可以被省略</li>
-</ol>
-<p>awk 最重要的部分是和 PATTERN 相关的语句块，该语句块同样可以被省略，如果省略，awk 默认为每一行执行 print，即打印出所读取的每一行。awk 对读取到的每一行都会执行该语句块，相当于一个 while 循环。每读取一行，awk 就会检查该行是否匹配指定模式，该模式本身可以是正则表达式、条件语句以及行范围等。一旦匹配成功，则执行后面的{ commands }。匹配模式同样也是可选的，如果没有提供匹配模式，则 awk 默认匹配所有行。</p>
-<blockquote>
-<p>print 命令能够接收参数并打印，这些参数以逗号分隔，在打印参数时则会以空格作为参数之间的分隔。也可以在 print 语句中使用双引号，双引号被当作拼接操作符使用</p>
-</blockquote>
-<p>awk 命令可以使用一些特殊变量：</p>
-<ul>
-<li>NR<br>表示记录编号，当 awk 将行作为记录时，该变量相当于当前行号</li>
-<li>NF<br>表示字段数量，在处理当前记录时，相当于字段数量，默认的字段分隔符是空格</li>
-<li>$0<br>该变量包含当前记录的文本内容</li>
-<li>$1<br>该变量包含第一个字段的文本内容</li>
-<li>$2<br>该变量包含第二个字段的文本内容</li>
-<li>$N<br>该变量包含第 N 个字段的文本内容</li>
-</ul>
-<blockquote>
-<p>awk 每读取一行，就会自动更新 NR 的值，当到达输入流末尾时，NR 中的值就是最后一行的行号</p>
-</blockquote>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">awk <span class="string">&#x27;&#123; print $0 &#125; END &#123;print &quot;total: &quot; NR&#125;&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># total: 6</span></span><br></pre></td></tr></table></figure>
-<p><code>-v</code>参数可以将外部 z 值(而非来自文件或 stdin)传递给 awk 使用：</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">VAR=1000</span><br><span class="line"><span class="built_in">echo</span> | awk -v VARIABLE=<span class="variable">$VAR</span> <span class="string">&#x27;&#123; print VARIABLE &#125;&#x27;</span></span><br><span class="line"><span class="comment"># 1000</span></span><br></pre></td></tr></table></figure>
-<p>awk 默认读取每一行，如果只想读取某一行，可以在 awk 脚本中使用 getline 函数，通常将其放在 BEGIN 语句块，读取某一行，在进入下一步处理</p>
-<p>awk 脚本中还可以使用条件判断来对行进行过滤，例如<code>awk &#39;NR &lt; 5&#39;</code>只读取行号小于 5 的行，<code>awk &#39;NR==1,NR==4&#39;</code>只读取行号在 1 到 5 之间的行</p>
-<p><code>awk -F delimiter</code>可以通过参数-F 指定字段分隔符，默认的字段分隔符是空格</p>
-<p>awk 中还可以使用关联数组，形如<code>arrayName[index]</code>，关联数组是一种使用字符串作为索引的数组</p>
-<p>awk 还有一些内建的字符串处理函数：</p>
-<ul>
-<li>length(string)<br>返回字符串长度</li>
-<li>index(string,search_string)<br>返回 search_string 字符串在字符串 string 中出现的位置</li>
-<li>split(string,array,delimiter)<br>以 delimiter 作为分隔符，分割字符串 string，将生成的字符串存入数组 array</li>
-<li>substr(string,start-position,end-position)<br>返回字符串中指定起止位置的子串</li>
-<li>sub(regex,replacement_str,string)<br>将正则表达式匹配到的第一处内容做替换</li>
-<li>gsub(regex,replacement_str,string)<br>和 sub 类似，但是替换所有匹配</li>
-<li>match(regex,string)<br>检查正则表达式是否可以在字符串 string 中找到匹配。如果能够找到，返回退出码 0，否则返回非 0 退出码</li>
-</ul>
-]]></content>
-      <categories>
-        <category>其他</category>
-      </categories>
-      <tags>
-        <tag>Linux</tag>
-        <tag>Shell</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>使用Scrapy时提取一个块级标签下的所有文本的正确方式</title>
     <url>/2021/04/05/%E4%BD%BF%E7%94%A8Scrapy%E6%97%B6%E6%8F%90%E5%8F%96%E4%B8%80%E4%B8%AA%E5%9D%97%E7%BA%A7%E6%A0%87%E7%AD%BE%E4%B8%8B%E7%9A%84%E6%89%80%E6%9C%89%E6%96%87%E6%9C%AC%E7%9A%84%E6%AD%A3%E7%A1%AE%E6%96%B9%E5%BC%8F/</url>
     <content><![CDATA[<p>使用 Scrapy 爬取一篇博客的内容(<a href="https://www.cnblogs.com/flashsun/p/14266148.html">原文链接</a>)，这里忽略正文中的图片，只针对文本内容。</p>
@@ -676,6 +555,159 @@
       </categories>
       <tags>
         <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Linux命令与shell小技巧(三)</title>
+    <url>/2021/08/22/Linux%E5%91%BD%E4%BB%A4%E4%B8%8Eshell%E5%B0%8F%E6%8A%80%E5%B7%A7-%E4%B8%89/</url>
+    <content><![CDATA[<p>本文搜集记录了一些 Linux 下的命令和 shell 脚本使用技巧，内容主要来自：</p>
+<blockquote><p>Linux Shell 脚本攻略（第 3 版）—— 门佳 译</p>
+<footer><strong>[USA] Clif Flynt [IND] Sarath Lakshman [IND] Shantanu Tushar</strong><cite>Linux Shell Scripting Cookbook</cite></footer></blockquote>
+<h2 id="文本操作"><a href="#文本操作" class="headerlink" title="文本操作"></a>文本操作</h2><h3 id="grep-命令"><a href="#grep-命令" class="headerlink" title="grep 命令"></a>grep 命令</h3><p><code>echo -e &quot;this is a word\nnext line&quot; | grep word</code>使用 grep 从标准输入中搜索匹配特定模式的文本行</p>
+<p><code>grep pattern file</code>或<code>grep &quot;pattern&quot; file</code>从文件中搜索匹配特定模式的文本行</p>
+<p><code>grep &quot;pattern&quot; file1 file2 file3</code>同时从多个文件中搜索</p>
+<p><code>grep --color=auto &quot;pattern&quot; file</code>在输出中着重标记出匹配到的模式，参数—color 对在命令中的放置位置没有强制要求，但是通常作为第一个选项出现</p>
+<p><code>grep -E &quot;[a-z]+&quot; file</code>或者<code>egrep &quot;[a-z]+&quot; file</code>使用扩展的正则表达式进行搜索，而 grep 默认使用基础正则表达式</p>
+<p><code>grep -o &quot;pattern&quot; file</code>只输出匹配到的文本</p>
+<p><code>grep -v &quot;pattern&quot; file</code>输出不匹配的所有行</p>
+<p><code>grep -c &quot;pattern&quot; file</code>统计成功匹配的文本行数，加上参数<code>-v</code>可以反转匹配结果，统计不匹配的文本行数</p>
+<blockquote>
+<p>使用<code>-c</code>参数只是统计出成功匹配的文本行数，而不是匹配的次数，如果要统计匹配的次数，可以使用如下的技巧：</p>
+<p><code>grep -o &quot;pattern&quot; | wc -l</code></p>
+</blockquote>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">egrep -c <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line">egerp -o <span class="string">&quot;[0-9+]&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1</span></span><br><span class="line"><span class="comment"># 2</span></span><br><span class="line"><span class="comment"># 3</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 5</span></span><br><span class="line"><span class="comment"># 6</span></span><br><span class="line">egrep -o <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span> | wc -l</span><br><span class="line"><span class="comment"># 6</span></span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<p><code>grep -n &quot;pattern&quot; file</code>可以显示出匹配行的行号，<code>grep -n &quot;pattern&quot; file1 file2</code>如果有多个文件时，会加上文件名和行号</p>
+<p><code>grep -b &quot;pattern&quot; file</code>输出匹配行的偏移量，<code>grep -bo &quot;pattern&quot; file</code>则会输出匹配结果的偏移量，偏移量是从 0 开始计算的</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">egrep -b <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 0:1wds</span></span><br><span class="line"><span class="comment"># 5:2sdsad</span></span><br><span class="line"><span class="comment"># 12:3sds4sd</span></span><br><span class="line"><span class="comment"># 20:5dsd6da</span></span><br><span class="line">egrep -bo <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 0:1</span></span><br><span class="line"><span class="comment"># 5:2</span></span><br><span class="line"><span class="comment"># 12:3</span></span><br><span class="line"><span class="comment"># 16:4</span></span><br><span class="line"><span class="comment"># 20:5</span></span><br><span class="line"><span class="comment"># 24:6</span></span><br></pre></td></tr></table></figure>
+<p><code>grep -l &quot;pattern&quot; file1 file2</code>列出匹配成功的文件列表，<code>grep -L &quot;pattern&quot; file1 file2</code>则列出没有匹配的文件列表</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat test1</span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">cat test2</span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 56</span></span><br><span class="line">egrep -l <span class="string">&quot;[a-z]+&quot;</span> test1 test2</span><br><span class="line"><span class="comment"># test1</span></span><br><span class="line">egrep -L <span class="string">&quot;[a-z]+&quot;</span> test1 test2</span><br><span class="line"><span class="comment"># test2</span></span><br></pre></td></tr></table></figure>
+<p><code>grep &quot;pattern&quot; path -R</code>会在指定路径中递归的搜索</p>
+<p><code>grep -i &quot;pattern&quot; file</code>搜索时忽略大小写</p>
+<p><code>grep -e &quot;pattern1&quot; -e &quot;pattern2&quot; file</code>可以同时指定多个匹配模式</p>
+<p><code>grep -f pattern_file file</code>可以从文件中读取匹配模式(一个匹配模式一行)，然后进行搜索</p>
+<p><code>grep &quot;pattern&quot; path -R --include &quot;pattern&quot;</code>可以在搜索过程中用通配符指定某些文件，相反的，参数<code>--exclude</code>在搜索过程中使用通配符排除某些文件，<code>--exclude-dir</code>可以排除目录</p>
+<p><code>grep -Z &quot;pattern&quot; file</code>可以使用 0 值字符(\0)作为文件名的终结符，结合参数<code>-l</code>或<code>-L</code>可以搜索出特定文件，然后传递给 xargs 执行下一步操作：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">grep <span class="string">&quot;pattern&quot;</span> -lZ . -R | xargs -0 rm</span><br></pre></td></tr></table></figure>
+<p><code>grep -q &quot;pattern&quot; file</code>使用静默模式搜索，不会输出搜索结果，只会在执行搜索后返回退出码，执行成功返回退出码 0，否则返回非 0 退出码</p>
+<p><code>grep -A n &quot;pattern&quot; file</code>可以输出匹配行以及之后的 n 行，<code>grep -B n &quot;pattern&quot; file</code>可以输出匹配行和之前的 n 行</p>
+<p><code>grep -A n -B m &quot;pattern&quot; file</code>可以输出匹行以及之前的 m 行和之后的 n 行</p>
+<p><code>grep -C n &quot;pattern&quot; file</code>可以输出匹配行和前后 n 行</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -A 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -B 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line">grep -C 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -A 2 -B 1 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
+<h3 id="cut-命令"><a href="#cut-命令" class="headerlink" title="cut 命令"></a>cut 命令</h3><p>cut 命令按列，而不是按行切分文件，可用于处理使用固定宽度字段的文件、CSV 文件或是由空格分隔的文件(例如标准日志文件)</p>
+<p><code>cut -f FIELD_LIST filename</code>提取指定字段，FIELD_LIST 是需要显示的列，由列号组成，彼此之间用逗号分隔，例如 <code>cut -f 2,3 test</code> 将提取 test 文件中的第 2 列和第 3 列</p>
+<p><code>cut -f FIELD_LIST --complement filename</code>可以显示出没有被 FIELD_LIST 指定的字段</p>
+<p><code>cut -f FIELD_LIST -d delimiter filename</code>可以使用指定的分隔符提取字段</p>
+<p>FIELD_LIST 除了使用列号和逗号的方式指定以外，还可以使用一种更简便的方式：</p>
+<ul>
+<li>N-<br>从第 N 个开始到行尾</li>
+<li>N-M<br>从第 N 个开始到第 M 个(包含第 M 个)</li>
+<li>-M<br>从行首到第 M 个(包含第 M 个)</li>
+</ul>
+<p>除了使用字段(空白符分隔)对列提取外，还可以指定其他的提取方式：</p>
+<ul>
+<li>-b 表示字节</li>
+<li>-c 表示字符</li>
+</ul>
+<p><code>--output-delimiter</code>可以指定输出分隔符，在显示多组数据时尤其有用</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">cat <span class="built_in">test</span> | cut -c 1,3</span><br><span class="line"><span class="comment"># xx</span></span><br><span class="line"><span class="comment"># 13</span></span><br><span class="line"><span class="comment"># ac</span></span><br><span class="line"><span class="comment"># 13</span></span><br><span class="line"><span class="comment"># xx</span></span><br><span class="line">cat <span class="built_in">test</span> | cut -c 1,3 --output-delimiter <span class="string">&quot; -- &quot;</span></span><br><span class="line"><span class="comment"># x -- x</span></span><br><span class="line"><span class="comment"># 1 -- 3</span></span><br><span class="line"><span class="comment"># a -- c</span></span><br><span class="line"><span class="comment"># 1 -- 3</span></span><br><span class="line"><span class="comment"># x -- x</span></span><br></pre></td></tr></table></figure>
+<h3 id="sed-命令"><a href="#sed-命令" class="headerlink" title="sed 命令"></a>sed 命令</h3><p>sed 命令是 stream editor(流编辑器)的缩写，常常用于文本替换。</p>
+<p><code>cat file | sed &#39;s/pattern/replace_string/&#39;</code>使用简单的字符串或正则表达式进行匹配，并替换为新的字符串</p>
+<p><code>sed -i &#39;s/pattern/replace_string/&#39; file</code>可以用修改后的数据替换原文件，sed 默认操作是将替换后的结果输出而不替换原文件</p>
+<p><code>sed -i &#39;s/pattern/replace_string/g&#39; file</code>替换全部匹配的内容，sed 默认只替换首次匹配到的内容，如果是用类似 Ng 的形式，则指定替换第 N 次匹配的内容</p>
+<p><code>sed -i &#39;s|pattern|replace_string|&#39; file</code>使用|作为命令的分隔符，sed 将 s 后的符号视作分隔符，因此可以方便的改变默认分隔符/，如果模式或者替换内容中出现分隔符则因该对其使用\进行转义</p>
+<p><code>sed -i &#39;/^$/d&#39; file</code>使用/d 而不是 s/对匹配内容进行删除而不是替换，正则表达式^$匹配空行，因此该条命令会删除文件中的所有空行</p>
+<p><code>sed -i.bak &#39;s/pattern/replace_string/&#39; file</code>可以在替换文件的同时为原文件生成一个.bak 后缀的备份文件</p>
+<p>参数<code>&amp;</code>指代模式所匹配到的字符串：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">sed <span class="string">&#x27;s/[a-z]\+/[&amp;]/g&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># [xxx]</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># [abc]</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># [xxx]</span></span><br></pre></td></tr></table></figure>
+<p>参数<code>\N</code>用来指代第 N 个子模式(出现在括号中的正则表达式)匹配的结果：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">sed <span class="string">&#x27;s/\(^[0-9]\)\([0-9]\)\([0-9]$\)/\2\2\2/g&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 222</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 555</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 888</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
+<p>可以使用管道命令组合多个 sed 命令<br><code>cat file | sed &#39;s/pattern1/replace_string/g&#39; | sed &#39;s/pattern2/replace_string/g&#39;</code>，<br>等同于使用分号分隔多个模式<br><code>cat file | sed &#39;s/pattern1/replace_string/g;s/pattern2/replace_string/g&#39;</code>，<br>也等同于使用<code>-e</code>参数指定多个匹配模式<br><code>cat file | sed -e &#39;s/pattern1/replace_string/g&#39; -e &#39;s/pattern2/replace_string/g&#39;</code></p>
+<p>sed 命令通常使用单引号来引用，如果要在 sed 命令的表达式中使用变量，则可以使用双引号，shell 在调用 sed 前会先扩展双引号中的内容</p>
+<h3 id="awk-命令"><a href="#awk-命令" class="headerlink" title="awk 命令"></a>awk 命令</h3><p>awk 命令可以处理数据流，支持关联数组、递归函数、条件语句等高级功能。</p>
+<p>awk 脚本的结构如下：</p>
+<p><code>awk &#39;BEGIN &#123; commands &#125; PATTERN &#123; commands &#125; END &#123; commands &#125;&#39; file</code>，其中 file 也可以是 stdin 中的输入</p>
+<p>awk 脚本通常由以上三部分构成：BEGIN、END 以及带模式匹配选项的公共语句块(common statement block)，这三个部分都是可选的，可以不出现在脚本中。</p>
+<p>awk 以逐行的形式处理文件。BEGIN 之后的命令先于公共语句块执行，对于匹配 PATTERN 的行，awk 会对其执行 PATTERN 之后的命令，最后，在处理完整个文件之后，awk 会执行 END 之后的命令。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">awk <span class="string">&#x27;BEGIN &#123;i=0&#125; &#123;i++;print i&#125; END &#123;print &quot;total: &quot; i&#125;&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1</span></span><br><span class="line"><span class="comment"># 2</span></span><br><span class="line"><span class="comment"># 3</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 5</span></span><br><span class="line"><span class="comment"># 6</span></span><br><span class="line"><span class="comment"># total: 6</span></span><br></pre></td></tr></table></figure>
+<p>上面的 awk 脚本打印出文件中的行号以及总行数，可以看出，awk 的工作流程为：</p>
+<ol>
+<li>首先执行 BEGIN { commands }语句块中的语句，由于 BEGIN 语句块在 awk 开始从输入流中读取行之前被执行，因此通常用来做诸如变量初始化、打印输出表格的表头等等，该语句块也可以被省略</li>
+<li>接着从文件或者 stdin 中读取一行，如果能够匹配 PATTERN，则执行后面的 commands，重复这一过程直到全部读取完成</li>
+<li>当读至输入流末尾时，执行 END { commands }语句块，END 语句块和 BEGIN 类似，它在 awk 读取完输入流中所有行后才被执行，因此通常用来做一些收尾工作，比如打印数据处理结果，该语句块也可以被省略</li>
+</ol>
+<p>awk 最重要的部分是和 PATTERN 相关的语句块，该语句块同样可以被省略，如果省略，awk 默认为每一行执行 print，即打印出所读取的每一行。awk 对读取到的每一行都会执行该语句块，相当于一个 while 循环。每读取一行，awk 就会检查该行是否匹配指定模式，该模式本身可以是正则表达式、条件语句以及行范围等。一旦匹配成功，则执行后面的{ commands }。匹配模式同样也是可选的，如果没有提供匹配模式，则 awk 默认匹配所有行。</p>
+<blockquote>
+<p>print 命令能够接收参数并打印，这些参数以逗号分隔，在打印参数时则会以空格作为参数之间的分隔。也可以在 print 语句中使用双引号，双引号被当作拼接操作符使用</p>
+</blockquote>
+<p>awk 命令可以使用一些特殊变量：</p>
+<ul>
+<li>NR<br>表示记录编号，当 awk 将行作为记录时，该变量相当于当前行号</li>
+<li>NF<br>表示字段数量，在处理当前记录时，相当于字段数量，默认的字段分隔符是空格</li>
+<li>$0<br>该变量包含当前记录的文本内容</li>
+<li>$1<br>该变量包含第一个字段的文本内容</li>
+<li>$2<br>该变量包含第二个字段的文本内容</li>
+<li>$N<br>该变量包含第 N 个字段的文本内容</li>
+</ul>
+<blockquote>
+<p>awk 每读取一行，就会自动更新 NR 的值，当到达输入流末尾时，NR 中的值就是最后一行的行号</p>
+</blockquote>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">awk <span class="string">&#x27;&#123; print $0 &#125; END &#123;print &quot;total: &quot; NR&#125;&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># total: 6</span></span><br></pre></td></tr></table></figure>
+<p><code>-v</code>参数可以将外部 z 值(而非来自文件或 stdin)传递给 awk 使用：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">VAR=1000</span><br><span class="line"><span class="built_in">echo</span> | awk -v VARIABLE=<span class="variable">$VAR</span> <span class="string">&#x27;&#123; print VARIABLE &#125;&#x27;</span></span><br><span class="line"><span class="comment"># 1000</span></span><br></pre></td></tr></table></figure>
+<p>awk 默认读取每一行，如果只想读取某一行，可以在 awk 脚本中使用 getline 函数，通常将其放在 BEGIN 语句块，读取某一行，在进入下一步处理</p>
+<p>awk 脚本中还可以使用条件判断来对行进行过滤，例如<code>awk &#39;NR &lt; 5&#39;</code>只读取行号小于 5 的行，<code>awk &#39;NR==1,NR==4&#39;</code>只读取行号在 1 到 5 之间的行</p>
+<p><code>awk -F delimiter</code>可以通过参数-F 指定字段分隔符，默认的字段分隔符是空格</p>
+<p>awk 中还可以使用关联数组，形如<code>arrayName[index]</code>，关联数组是一种使用字符串作为索引的数组</p>
+<p>awk 还有一些内建的字符串处理函数：</p>
+<ul>
+<li>length(string)<br>返回字符串长度</li>
+<li>index(string,search_string)<br>返回 search_string 字符串在字符串 string 中出现的位置</li>
+<li>split(string,array,delimiter)<br>以 delimiter 作为分隔符，分割字符串 string，将生成的字符串存入数组 array</li>
+<li>substr(string,start-position,end-position)<br>返回字符串中指定起止位置的子串</li>
+<li>sub(regex,replacement_str,string)<br>将正则表达式匹配到的第一处内容做替换</li>
+<li>gsub(regex,replacement_str,string)<br>和 sub 类似，但是替换所有匹配</li>
+<li><p>match(regex,string)<br>检查正则表达式是否可以在字符串 string 中找到匹配。如果能够找到，返回退出码 0，否则返回非 0 退出码</p>
+<h3 id="paste命令"><a href="#paste命令" class="headerlink" title="paste命令"></a>paste命令</h3><p>paste命令可以按列合并文件，并且可以使用参数<code>-d</code>指定输出分隔符，默认的分隔符是制表符(\t)，参数<code>-s</code>可以先将所有列合并成单行在合并连个文件</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat test1</span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">cat test2</span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line">paste -s -d , test1 test2</span><br><span class="line"><span class="comment"># 123,xxx,456,abc,789,xxx</span></span><br><span class="line"><span class="comment"># xxx,789,abc,456,xxx,123</span></span><br><span class="line">paste test1 test2</span><br><span class="line"><span class="comment"># 123     xxx</span></span><br><span class="line"><span class="comment"># xxx     789</span></span><br><span class="line"><span class="comment"># 456     abc</span></span><br><span class="line"><span class="comment"># abc     456</span></span><br><span class="line"><span class="comment"># 789     xxx</span></span><br><span class="line"><span class="comment"># xxx     123</span></span><br></pre></td></tr></table></figure>
+<h3 id="variable-name-start-position-length-文本切片"><a href="#variable-name-start-position-length-文本切片" class="headerlink" title="${variable_name:start_position:length} 文本切片"></a>${variable_name:start_position:length} 文本切片</h3><p>我们可以通过指定文本字符串起始位置和截取长度，从文本字符串中生成子串：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="variable">$test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$&#123;test:4:3&#125;</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$&#123;test:4:-4&#125;</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
+<h2 id="从网络获取数据"><a href="#从网络获取数据" class="headerlink" title="从网络获取数据"></a>从网络获取数据</h2><h3 id="wget命令"><a href="#wget命令" class="headerlink" title="wget命令"></a>wget命令</h3><p>wget命令可以下载网页或者远程文件。</p>
+<p><code>wget URL</code>从指定网址下载页面，或者<code>wget URL1 URL2 URL3 ...</code>从多个URL处下载</p>
+<p><code>wget URL -O filename</code>可以指定下载后文件的名字，如果存在同名文件，则原文件会被下载文件覆盖</p>
+<p><code>wget URL -o log</code>则可以指定将日志或进度信息写入指定日志文件，而不输出到stdout</p>
+<p><code>wget -t time URL</code>可以指定下载失败时，进行多少次尝试再放弃下载，如果设为0即强制不断的尝试下载直到下载完成</p>
+<p><code>wget --limit-rate rate URL</code>可以对下载进行限速，单位可以使用千字节(K)和兆字节(m)</p>
+<p><code>wget -Q quota URL</code>可以限制下载最大配额，单位同样支持千字节(k)和兆字节(m)，一旦下载大小超出限额则放弃下载</p>
+<p><code>wget -c URL</code>可以对下载完成前被中断的下载进行断点续传</p>
+<p><code>wget --user username --password password URL</code>可以用于需要进行认证的网站</p>
+<h3 id="curl命令"><a href="#curl命令" class="headerlink" title="curl命令"></a>curl命令</h3><p>curl命令可以使用HTTP、HTTPS、FTP协议在客户端和服务器之间传递数据，支持POST、cookie、认证、从指定偏移处下载部分文件、参照页(referer)、用户代理字符串、扩展头部、限速、文件大小限制、进度条等特性。常用于网站维护、数据检索以及服务器配置核对。</p>
+<p>curl默认将下载文件输出到stdout，将进度信息输出到stderr，可以使用参数<code>--silent</code>关闭进度显示。</p>
+<p><code>curl URL</code>将下载信息输出到stdout</p>
+<p><code>curl URL --silent -O</code>关闭进度输出，并且通过参数<code>-O</code>将下载数据写入文件，文件名采用从URL中解析出的文件名，因此这里的URL必须是完整的(www.example.com/index.html)，而不是仅有站点域名</p>
+<p><code>curl URL -o filename</code>则可以用指定文件名来存储下载数据，因此此处的URL可以只是站点的域名</p>
+<p><code>curl URL --progress</code>可以在下载过程中显示形如<strong>#</strong>的进度条</p>
+<p><code>curl URL -C offset</code>可以进行断点续传，需要指明偏移量，将offset写为<code>-</code>则可以让curl自动计算因该从哪里开始续传</p>
+<p><code>curl --referer Referer_URL target_URL</code>可以指定参照页，只有HTTP头部字段中<strong>参照页(Referer)</strong>符合指定地址时，才会从目标地址进行下载</p>
+<p><code>curl URL --cookie &quot;key1=value1;key2=value2&quot;</code>可以指定和存储下载过程中产生的cookie</p>
+<p><code>curl URL --cookie-jar cookie_file</code>可以将所有cookie存入文件</p>
+<p><code>curl URL --user-agent UA</code>或者<code>curl URL -A UA</code>可以设置用户代理字符串</p>
+<p><code>curl -H &quot;key:value&quot; -H &quot;key:value&quot; URL</code>可以发送多个HTTP头部(header)信息</p>
+<p><code>curl URL --limit-rate rate</code>可以限速，用法和wget一样</p>
+<p><code>curl URL --max-filesize size</code>可以限额，用法和wget一样，如果大小超出限额，则命令返回非0退出码，否则返回0退出码</p>
+<p><code>curl -u username:password URL</code>可以进行认证，用法和wget一样</p>
+<p><code>curl -I URL</code>或者<code>curl --head URL</code>可以只下载头部信息而不下载完整的页面</p>
+<h3 id="网络图片爬取及下载"><a href="#网络图片爬取及下载" class="headerlink" title="网络图片爬取及下载"></a>网络图片爬取及下载</h3><p>下面综合利用上述命令，编写一个网络图片爬取及下载的脚本：</p>
+<figure class="highlight sh"><figcaption><span>img_downloader.sh</span></figcaption><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># 用途：图片下载工具</span></span><br><span class="line"><span class="comment"># 文件名： img_downloader.sh</span></span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$#</span> -ne 3 ]</span><br><span class="line"><span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;Usage: <span class="variable">$0</span> URL -d DIRECTORY&quot;</span></span><br><span class="line">  <span class="built_in">exit</span> -1</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> [ <span class="variable">$#</span> -gt 0 ]</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">  <span class="keyword">case</span> <span class="variable">$1</span> <span class="keyword">in</span></span><br><span class="line">  -d) <span class="built_in">shift</span>; directory=<span class="variable">$1</span>; <span class="built_in">shift</span> ;;</span><br><span class="line">  *) url=<span class="variable">$1</span>; <span class="built_in">shift</span> ;;</span><br><span class="line">  <span class="keyword">esac</span></span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"></span><br><span class="line">mkdir -p <span class="variable">$directory</span>;</span><br><span class="line">baseurl=$(<span class="built_in">echo</span> <span class="variable">$url</span> | egrep -o <span class="string">&quot;https?://[a-z.\-]+&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> Downloading <span class="variable">$url</span></span><br><span class="line">curl -s <span class="variable">$url</span> | egrep -o <span class="string">&quot;&lt;img[^&gt;]*src=[^&gt;]*&gt;&quot;</span> | \</span><br><span class="line">  sed <span class="string">&#x27;s/&lt;img[^&gt;]*src=\&quot;\([^&quot;]*\).*/\1/g&#x27;</span> | \</span><br><span class="line">  sed <span class="string">&quot;s,^/,<span class="variable">$baseurl</span>/,&quot;</span> &gt; /tmp/$$.list</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> <span class="variable">$directory</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> <span class="built_in">read</span> filename;</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">  <span class="built_in">echo</span> Downloading <span class="variable">$filename</span></span><br><span class="line">  curl -s -O <span class="string">&quot;<span class="variable">$filename</span>&quot;</span> --silent</span><br><span class="line"><span class="keyword">done</span> &lt; /tmp/$$.list</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>其他</category>
+      </categories>
+      <tags>
+        <tag>Linux</tag>
+        <tag>Shell</tag>
       </tags>
   </entry>
   <entry>
