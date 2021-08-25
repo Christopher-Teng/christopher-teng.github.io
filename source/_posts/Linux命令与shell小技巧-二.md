@@ -71,6 +71,13 @@ echo -e "test\n\ntest\n\ntest" | cat -nb
 # 3 test
 ```
 
+还可以使用cat命令将stdin的输入写入文件(>或>>)，使用类似下面的格式：
+```sh
+cat << EOF > file
+input something...
+EOF
+```
+
 ### find 命令
 
 `find base_path`列出给定目录下的所有文件和子目录

@@ -514,6 +514,244 @@ awk 还有一些内建的字符串处理函数：
   while read filename;
   do
     echo Downloading $filename
-    curl -s -O "$filename" --silent
+    curl -s -O "$filename"
   done < /tmp/$$.list
   ```
+
+  ### 网页相册生成器
+
+  Web开发中经常会创建包含全尺寸和缩略图的相册。点击缩略图，就会出现一幅放大的图片。如果需要很多图片，每一次都得复制`<img>`标签、调整图片大小来创建缩略图、把调整好的图片放进缩略图目录。我们可以写一个简单的Bash脚本将这些重复工作自动化，这样一来，创建缩略图、将缩略图放入对应目录、生成`<img>`标签都可以自动搞定。
+
+  ```sh generate_album.sh
+  #!/bin/bash
+  # 文件名：generate_album.sh
+  # 用途：用当前目录下的图片创建相册
+
+  echo "Creating album..."
+
+  currentDir=`pwd`
+  albumName=${currentDir##*/}
+
+  mkdir -p thumbs
+  cat <<EOF1 > index.html
+  <!DOCTYPE html>
+  <html lang="zh-CN">
+  <head>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no" >
+  <meta name="X-UA-Compatible" content="IE=edge,chrome=1" >
+  <style>
+    body{
+      margin:auto;
+      padding:0 10px;
+      background-color: darkcyan;
+      border:1px dashed grey;
+    }
+
+    h1{
+      position:fixed;
+      top:0;
+      margin:0;
+      padding:10px 0;
+      width:100%;
+      height:30px;
+      line-height:30px;
+      text-align:center;
+      color:white;
+      background-color:darkcyan;
+      z-index:999;
+    }
+
+    main{
+      display:flex;
+      flex-flow:row wrap;
+      justify-content:space-between;
+      align-items:center;
+      margin-top:50px;
+    }
+
+    img{
+      margin:0 5px 10px;
+      border:1px solid black;
+      box-shadow:2px 2px 2px 1px white;
+    }
+
+    img:hover{
+      transform:scale(1.1);
+    }
+  </style>
+  <title>$albumName</title>
+  </head>
+  <body>
+    <h1>Photo Album $albumName </h1>
+    <main>
+  EOF1
+
+  for img in `ls $currentDir | egrep '*.(jpg|png)'`
+  do
+    convert "$img" -resize "100x" "thumbs/$img"
+    echo "<a href=\"$img\" >" >> index.html
+    echo "<img src=\"thumbs/$img\" title=\"$img\" /></a>" >> index.html
+  done
+
+  cat <<EOF2 >> index.html
+  </main>
+  </body>
+  </html>
+  EOF2
+
+  echo Album generated to index.html
+  ```
+
+  ## 归档、压缩与备份
+
+  ### tar命令
+
+  tar命令可以用来归档文件，它最初是用来将数据存储在磁带上的，因此其名字来源于
+  Tape ARchive。tar可以将多个文件或文件夹打包成单个文件，同时还能保留所有文件属性，如所有者、权限等，由tar创建的文件通常称为tarball。
+
+  `tar -cf ARchive.tar SOURCES`将指定目标打包成指定归档文件名的tarball，其中参数`-c`表示创建归档文件，参数`-f`指定归档文件名，文件名必须紧跟在参数`-f`后面
+
+  `tar -tf ARchive.tar`列出归档中的文件
+
+  `tar -cvf ARchive.tar SOURCES`，参数`-v`表示冗长模式，即在命令执行过程中输出细节信息，还可以使用参数`-vv`(非常冗长模式)
+
+  `tar -rvf ARchive.tar new_file`可以向归档文件末尾追加新文件
+
+  `tar -xvf Archive.tar`可以从归档文件中提取内容到当前目录，还可以加上参数`-C PATH`提取到指定位置
+
+  可以在tar命令中使用stdin和stdout，下面的命令可以将本地数据先归档然后在通过SSH传输到远程并且提取到指定位置：
+
+  `tar -cvf - SOURCES | ssh user@host "tar -xv -C PATH`
+
+  `tar -Af archive1.tar archive2.tar`可以将archive2.tar中的内容合并到archive1.tar中
+
+  `tar -uf ARchive.tar new_file`可以向归档文件中追加新文件，和使用参数`-r`不同，参数`-u`指定只有当new_file比归档中同名文件更新时才会执行追加操作，否则什么都不会发生，而参数`-r`则一定会执行追加操作，因此归档中可能出现完全相同的两个同名文件
+
+  `tar -df ARchive.tar`可以将归档中的内容和文件系统中的内容做比较，可以利用这条命令确定是否需要追加新的文件
+
+  `tar -f ARchive.tar --delete file1 file2 ...`可以从归档中删除文件
+
+  tar命令默认只进行归档而不执行文件压缩，但是提供压缩选项来开启压缩功能：
+
+  - -z指定开启gzip压缩，输出格式为archive.tar.gz或archive.tgz
+  - -j指定开启bzip2压缩，输出格式为archive.tar.bz2
+  - --lzma指定开启Lempel-Ziv-Markov压缩，输出格式为archive.tar.lzma
+
+  也可以使用参数`-a`让tar命令根据指定的压缩归档文件扩展名选择合适的压缩方式
+
+  `tar -cvf ARchive.tar SOURCES --exclude PATTERN`可以将匹配指定模式的文件排除在归档之外，也可以将要排除的文件列表放入文件中，然后使用参数`-X`从文件中读取排除内容
+
+  `tar --exclude-vcs -cvf ARchive.tar SOURCES`可以将版本控制目录排除在归档之外
+
+  `tar -cvf ARchive.tar SOURCES --totals`可以在完成归档后显示归档的总字节数，注意如果启用了压缩，实际的压缩归档文件大小会小于显示的这个总字节数
+
+### zip、unzip命令
+
+ZIP作为一种流行的压缩格式，在Mac、Windows和Linux平台下都可以使用，虽然在Linux中它的使用率不及gzip，但是当我们需要向其他平台分发数据时，使用zip非常有用。
+
+`zip ARchive_name.zip file1 file2 ...`进行压缩归档
+
+`zip -r ARchive_name.zip folder1 folder2 ...`可以递归的对目录进行压缩归档
+
+`zip ARchive_name.zip -u newfile`可以更新压缩归档中的文件
+
+`zip -d ARchive_name.zip file1 file2 ...`从压缩归档文件中删除内容
+
+`unzip ARchive_name.zip`提取内容
+
+`unzip -l ARchive_name.zip`列出压缩归档文件中的内容
+
+### squashfs命令
+
+squashfs程序可以创建出一种具有超高压缩比的只读型文件系统，它可以将2GB~3GB的数据压缩成一个700MB左右的文件。Linux LiveCD(或者Linux LiveUSB)就是使用squashfs创建的，这类CD(USB)利用只读型的压缩文件系统，将根文件系统保存在一个压缩文件中，然后使用环回文件的方式进行挂载，从而装入完成的Linux系统。如果需要某些文件，可以将其解压然后装入内存中使用。解压缩体积较大的压缩文件很费时，但是将其通过环回方式进行挂在，那速度会变得飞快，因为只有出现访问请求时，才会解压缩相应的文件。
+
+创建squashfs需要使用squashfs-tools，可以使用包管理器来安装。
+
+首先使用mksquashfs命令添加源目录和文件，创建一个squashfs文件：
+
+`mksquashfs SOURCES compressedfs.squashfs`
+
+然后利用环回形式挂在squashfs文件：
+
+```sh
+mkdir /mnt/squash
+mount -o loop compressedfs.squashfs /mnt/squash
+```
+
+> 创建squashfs文件时，可以通过`mksquashfs -e`排除指定目录，或者将排除列表放入文件，然后使用参数`-ef`读取
+
+### rsync命令
+
+rsync命令可以用于本地和远程的数据备份，它可以在最小化数据传输量的同时，同步不同位置上的文件和目录。和cp命令相比，rsync会比较文件修改时间，仅复制较新的文件，而且还支持远程数据传输、压缩和加密。
+
+`rsync -av SOURCE_PATH DESTINATION_PATH`，该命令可以同步源路径和目标路径的数据，参数`-a`表示进行归档操作，参数`-v`表示在stdout上输出细节信息或进度，其中源路径和目标路径既可以是本地位置也可以是远程位置
+
+`rsync -avz SOURCE_PATH DESTINATION_PATH`使用参数`-z`指定开启压缩，这样可以明显改善传输效率
+
+使用参数`--exclude`可以在备份数据时指定排除的数据，或者使用参数`--exclude-from`从文件中读取排除内容
+
+默认情况下，rsync不会在目标路径删除在源路径已经不存在的数据，可以使用参数`--delete`让rsync在同步数据时，自动删除目标路径中源路径上已经删除的数据
+
+rsync命令常常搭配cron定时任务，达到定期备份数据的效果
+
+### fsarchiver命令
+
+fsarchiver命令可以用来备份文件系统或分区，和tar不同，fsarchiver会保留文件的扩展属性。
+
+`fsarchiver savefs backup.fsa FS_OR_PARTITION1 FS_OR_PARTITION2 ...`备份文件系统或分区到指定文件
+
+`fsarchiver restfs backup.fsa id=0,dest=DESTINATION1 id=1,dest=DESTINATION2`通过参数`id`指定提取备份文件中的某个分区，并恢复到指定位置
+
+## 网络相关命令
+
+### ssh命令
+
+SSH代表Secure Shell(安全shell)，它使用加密隧道连接两台计算机，ssh命令可以从本地连接到远程计算机上的shell，从而在远程执行交互命令并接收结果或者启用交互会话等。
+
+要使用ssh，需要用包管理器安装openssh-server和openssh-client，SSH服务默认运行在端口22上。
+
+`ssh username@remote_host`连接远程主机，也可以使用参数`-p`从指定端口进行连接
+
+`ssh username@remote_host "command1;command2;..."`可以在远程主机上执行命令并且在本地shell中接收结果
+
+`ssh -C username@remote_host`开启对数据进行压缩传输
+
+可以通过ssh将数据从定向到远程的stdin，例如：
+
+`echo "test" | ssh username@remote_host 'echo'`将本地stdin的数据传递到远程主机的stdin，
+
+或者
+
+`ssh username@remote_host 'echo' < file`将本地文件上的数据传递到远程主机的stdin
+
+### scp命令
+
+scp(Secure Copy Program)命令可以利用ssh加密通道进行文件的安全复制
+
+`scp SOURCE DESTINATION`进行文件复制，其中的SOURCE和DESTINATION均可以采用形如`username@remote_host:/path`的形式指定远程位置
+
+scp使用ssh建立的加密隧道复制文件，因此使用和ssh服务一样的端口，即默认22端口，也可以通过选项`-oPort`指定其他端口
+
+`scp -r SOURCE_FOLDER DESTINATION_FOLDER`可以递归的复制目录
+
+`scp -p SOURCE DESTINATION`可以在复制时保留文件权限和属性
+
+## 系统监视相关命令
+
+### du和df命令
+
+du(disk usage)和df(disk free)可以报告磁盘使用情况
+
+`du file1 file2 ...`找出指定文件磁盘占用
+
+`du -a dir1 dir2 ...`递归的输出指定目录中所有文件的磁盘使用情况
+
+`du -h file`使用更友好可读的方式显示结果
+
+`du -c dir`可以计算出文件或目录所占用的总的磁盘空间，同时也会输出单个文件的大小
+
+使用参数`-b`、`-k`、`-m`可以强制使用特定单位显示磁盘使用情况
+
+参数`--exclude`和`--exclude-from`可以从磁盘使用情况统计中排除指定文件或目录
+
+du命令提供的是磁盘使用情况，而df命令则提供磁盘可用空间信息，用法与du相同
