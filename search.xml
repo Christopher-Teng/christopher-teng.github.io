@@ -1,6 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>JS中的闭包与高阶函数</title>
+    <url>/2021/08/06/JS%E4%B8%AD%E7%9A%84%E9%97%AD%E5%8C%85%E4%B8%8E%E9%AB%98%E9%98%B6%E5%87%BD%E6%95%B0/</url>
+    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>&emsp;&emsp;JS 中的函数是一等公民，可以和其他对象一样，有自己的属性和方法，可以赋值给一个变量，可以放进数组中作为元素，可以作为其他函数的参数,等等……普通对象能做的它能做，普通对象不能做的它也能做。因为 JS 中函数的这种特性，因而产生了很多特殊的情形，比如闭包和高阶函数。</p>
+<span id="more"></span>
+<h2 id="闭包"><a href="#闭包" class="headerlink" title="闭包"></a>闭包</h2><p>&emsp;&emsp;当函数可以<strong>记住并访问</strong>所在词法作用域时，就产生了闭包，即使函数是在当前词法作用域之外执行：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">var</span> a = <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">bar</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(a);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> bar;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> baz = foo();</span><br><span class="line"></span><br><span class="line">baz(); <span class="comment">// 输出 2</span></span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;一般来说，函数在执行完后其整个内部作用域都会被销毁，因为 JavaScript 的 GC(Garbage Collection)垃圾回收机制会自动回收不再使用的内存空间。但是闭包会阻止某些 GC，比如上面例子中的 foo()执行完成后，因为返回的 bar 函数依然持有其所在作用域的引用，所以其内部作用域不会被回收。如果不是必须使用闭包，因该尽量避免产生闭包，因为闭包在处理速度和内存消耗方面对性能具有负面影响。</p>
+<p>&emsp;&emsp;闭包的一个典型应用是备忘模式(结果缓存)。当一个函数存在复杂的执行过程，造成大量开销的话，可以在函数内部用一个对象来存储每次执行的结果，当下次执行时，如果用到同样的数据，就可以直接从这个缓存对象中取出数据，节省执行开销：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">memories</span>(<span class="params">fn</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">const</span> _cache = &#123;&#125;;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> (<span class="params">...rest</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> key = <span class="built_in">JSON</span>.stringify(rest);</span><br><span class="line">    <span class="keyword">return</span> _cache[key] || (_cache[key] = fn.apply(fn, rest));</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;这里的 JSON.stringify 把传给 memories 函数的参数序列化成字符串，把它当作_cache 的索引，将 memories 函数的运行结果当作索引的值传递给_cache，这样 memories 运行的时候，如果传递的参数之前传递过，那么就可以直接返回缓存好的结果，如果传递的参数没有使用过，则执行 memories 并将结果缓存。另外，还可以在实际使用时进行优化，一方面缓存不可以永远扩张下去，这样太耗费内存资源，可以设置只缓存最新传入的 n 个参数的结果，另一方面，可以借助浏览器的持久化手段进行缓存持久化，比如 cookie、localStorage 等。</p>
+<h2 id="高阶函数"><a href="#高阶函数" class="headerlink" title="高阶函数"></a>高阶函数</h2><p>&emsp;&emsp;高阶函数即函数的输入参数中有函数，或者返回结果是函数。函数作为参数的情况，常见的场景就是回调函数，比如 setTimeout、setInterval 等，函数作为返回值的情况，常见的场景就是闭包的使用，利用闭包的特性来保持作用域。</p>
+<p>&emsp;&emsp;下面列举几个高阶函数的常用情况：</p>
+<h3 id="柯里化"><a href="#柯里化" class="headerlink" title="柯里化"></a>柯里化</h3><p>&emsp;&emsp;柯里化(Currying)，又称部分求值(Partial Evaluation)，是把接受多个参数的原函数变换成接受一个单一参数(原函数的第一个参数)的函数，并且返回一个新函数，新函数能够接受余下的参数，最后返回同原函数一样的结果。柯里化的核心思想是把多参数传入的函数拆成单(或部分)参数函数，内部再返回调用下一个单(或部分)参数函数，依次处理剩余的参数。柯里化有 3 个常见作用：<strong>参数复用</strong>、<strong>提前返回</strong>、<strong>延迟计算/运行</strong>：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">currying</span>(<span class="params">fn, ...rest1</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> (<span class="params">...rest2</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> fn.apply(fn, rest1.concat(rest2));</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="反柯里化"><a href="#反柯里化" class="headerlink" title="反柯里化"></a>反柯里化</h3><p>&emsp;&emsp;柯里化是固定部分参数，返回一个接受剩余参数的函数，也称为部分计算函数，目的是为了缩小适用范围，创建一个针对性更强的函数。反柯里化的意义和用法正好和柯里化相反，是为了扩大适用范围，创建一个应用范围更广的函数，使本来只有特定对象才适用的方法，扩展到更多的对象：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">unCurrying</span>(<span class="params">fn</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> (<span class="params">target, ...rest</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> fn.apply(target, rest);</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;可以这样理解柯里化和反柯里化的区别：柯里化是在运算前提前传参，可以传递多个参数；反柯里化是延迟传参，在运算时把原来已经固定的参数或者 this 上下文等当作参数延迟到未来传递。</p>
+<h3 id="消抖函数"><a href="#消抖函数" class="headerlink" title="消抖函数"></a>消抖函数</h3><p>&emsp;&emsp;消抖函数(deBounce)可以在指定的间隔时间段内阻止原函数的重复执行，提高性能：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">debounce</span>(<span class="params">fn, delay = <span class="number">200</span></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> timer = <span class="literal">null</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> (<span class="params">...args</span>) </span>&#123;</span><br><span class="line">    timer &amp;&amp; <span class="built_in">clearTimeout</span>(timer);</span><br><span class="line">    timer = <span class="built_in">setTimeout</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line">      fn.apply(<span class="built_in">this</span>, args);</span><br><span class="line">    &#125;, delay);</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="偏函数"><a href="#偏函数" class="headerlink" title="偏函数"></a>偏函数</h3><p>&emsp;&emsp;偏函数是创建一个调用另外一个部分(参数或变量已预制的函数)的函数，函数可以根据传入的参数来生成一个真正执行的函数。其本身不包括我们真正需要的代码，只是根据传入的参数返回其他函数，返回的函数中才有真正的处理逻辑：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">isType</span>(<span class="params">type</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> (<span class="params">obj</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Object</span>.prototype.toString.call(obj) === <span class="string">`[object <span class="subst">$&#123;type&#125;</span>]`</span>;</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> isString = isType(<span class="string">&quot;String&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isNumber = isType(<span class="string">&quot;Number&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isBoolean = isType(<span class="string">&quot;Boolean&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isUndefined = isType(<span class="string">&quot;Undefined&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isNull = isType(<span class="string">&quot;Null&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isObject = isType(<span class="string">&quot;Object&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isSymbol = isType(<span class="string">&quot;Symbol&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isFunction = isType(<span class="string">&quot;Function&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;这样就利用偏函数快速创建了一组判断对象类型的方法。</p>
+<p>&emsp;&emsp;偏函数和柯里化的区别：柯里化是把一个接受 n 个参数的函数，有原本的一次性传递所有参数并执行变成了可以分多次接受参数再执行；偏函数固定了函数的某个部分，通过传入的参数或者方法返回一个新的函数来接受剩余的参数，数量可能是一个也可能是多个；当一个柯里化函数只接受两次参数时，这时的柯里化函数和偏函数概念类似，可以认为偏函数是柯里化函数的退化版。</p>
+]]></content>
+      <categories>
+        <category>前端开发</category>
+      </categories>
+      <tags>
+        <tag>JavaScript</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>JS中this指向类型总结</title>
     <url>/2021/08/06/JS%E4%B8%ADthis%E6%8C%87%E5%90%91%E7%B1%BB%E5%9E%8B%E6%80%BB%E7%BB%93/</url>
     <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>&emsp;&emsp;在 JS 中，this 是在函数被调用时确定的，它的指向<strong>完全却决于函数调用的地方，而不是它被声明的地方(箭头函数除外)</strong>。当一个函数被调用时，会创建一个执行上下文，其中记录了函数在哪里被调用(调用栈)、函数的调用方式、传入的参数等信息，this 就是这个记录的一个属性，会在函数执行过程中被用到。</p>
@@ -38,38 +70,6 @@
 <li>隐式绑定：函数是否在某个上下文对象中调用？如果是则 this 绑定到这个上下文对象</li>
 <li>默认绑定：如果以上都不是，在严格模式下 this 绑定为 undefined，在非严格模式下 this 绑定到当前环境的全局对象</li>
 </ol>
-]]></content>
-      <categories>
-        <category>前端开发</category>
-      </categories>
-      <tags>
-        <tag>JavaScript</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>JS中的闭包与高阶函数</title>
-    <url>/2021/08/06/JS%E4%B8%AD%E7%9A%84%E9%97%AD%E5%8C%85%E4%B8%8E%E9%AB%98%E9%98%B6%E5%87%BD%E6%95%B0/</url>
-    <content><![CDATA[<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>&emsp;&emsp;JS 中的函数是一等公民，可以和其他对象一样，有自己的属性和方法，可以赋值给一个变量，可以放进数组中作为元素，可以作为其他函数的参数,等等……普通对象能做的它能做，普通对象不能做的它也能做。因为 JS 中函数的这种特性，因而产生了很多特殊的情形，比如闭包和高阶函数。</p>
-<span id="more"></span>
-<h2 id="闭包"><a href="#闭包" class="headerlink" title="闭包"></a>闭包</h2><p>&emsp;&emsp;当函数可以<strong>记住并访问</strong>所在词法作用域时，就产生了闭包，即使函数是在当前词法作用域之外执行：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">foo</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">var</span> a = <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">bar</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(a);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> bar;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> baz = foo();</span><br><span class="line"></span><br><span class="line">baz(); <span class="comment">// 输出 2</span></span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;一般来说，函数在执行完后其整个内部作用域都会被销毁，因为 JavaScript 的 GC(Garbage Collection)垃圾回收机制会自动回收不再使用的内存空间。但是闭包会阻止某些 GC，比如上面例子中的 foo()执行完成后，因为返回的 bar 函数依然持有其所在作用域的引用，所以其内部作用域不会被回收。如果不是必须使用闭包，因该尽量避免产生闭包，因为闭包在处理速度和内存消耗方面对性能具有负面影响。</p>
-<p>&emsp;&emsp;闭包的一个典型应用是备忘模式(结果缓存)。当一个函数存在复杂的执行过程，造成大量开销的话，可以在函数内部用一个对象来存储每次执行的结果，当下次执行时，如果用到同样的数据，就可以直接从这个缓存对象中取出数据，节省执行开销：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">memories</span>(<span class="params">fn</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">const</span> _cache = &#123;&#125;;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> (<span class="params">...rest</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> key = <span class="built_in">JSON</span>.stringify(rest);</span><br><span class="line">    <span class="keyword">return</span> _cache[key] || (_cache[key] = fn.apply(fn, rest));</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;这里的 JSON.stringify 把传给 memories 函数的参数序列化成字符串，把它当作_cache 的索引，将 memories 函数的运行结果当作索引的值传递给_cache，这样 memories 运行的时候，如果传递的参数之前传递过，那么就可以直接返回缓存好的结果，如果传递的参数没有使用过，则执行 memories 并将结果缓存。另外，还可以在实际使用时进行优化，一方面缓存不可以永远扩张下去，这样太耗费内存资源，可以设置只缓存最新传入的 n 个参数的结果，另一方面，可以借助浏览器的持久化手段进行缓存持久化，比如 cookie、localStorage 等。</p>
-<h2 id="高阶函数"><a href="#高阶函数" class="headerlink" title="高阶函数"></a>高阶函数</h2><p>&emsp;&emsp;高阶函数即函数的输入参数中有函数，或者返回结果是函数。函数作为参数的情况，常见的场景就是回调函数，比如 setTimeout、setInterval 等，函数作为返回值的情况，常见的场景就是闭包的使用，利用闭包的特性来保持作用域。</p>
-<p>&emsp;&emsp;下面列举几个高阶函数的常用情况：</p>
-<h3 id="柯里化"><a href="#柯里化" class="headerlink" title="柯里化"></a>柯里化</h3><p>&emsp;&emsp;柯里化(Currying)，又称部分求值(Partial Evaluation)，是把接受多个参数的原函数变换成接受一个单一参数(原函数的第一个参数)的函数，并且返回一个新函数，新函数能够接受余下的参数，最后返回同原函数一样的结果。柯里化的核心思想是把多参数传入的函数拆成单(或部分)参数函数，内部再返回调用下一个单(或部分)参数函数，依次处理剩余的参数。柯里化有 3 个常见作用：<strong>参数复用</strong>、<strong>提前返回</strong>、<strong>延迟计算/运行</strong>：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">currying</span>(<span class="params">fn, ...rest1</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> (<span class="params">...rest2</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> fn.apply(fn, rest1.concat(rest2));</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="反柯里化"><a href="#反柯里化" class="headerlink" title="反柯里化"></a>反柯里化</h3><p>&emsp;&emsp;柯里化是固定部分参数，返回一个接受剩余参数的函数，也称为部分计算函数，目的是为了缩小适用范围，创建一个针对性更强的函数。反柯里化的意义和用法正好和柯里化相反，是为了扩大适用范围，创建一个应用范围更广的函数，使本来只有特定对象才适用的方法，扩展到更多的对象：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">unCurrying</span>(<span class="params">fn</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> (<span class="params">target, ...rest</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> fn.apply(target, rest);</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;可以这样理解柯里化和反柯里化的区别：柯里化是在运算前提前传参，可以传递多个参数；反柯里化是延迟传参，在运算时把原来已经固定的参数或者 this 上下文等当作参数延迟到未来传递。</p>
-<h3 id="消抖函数"><a href="#消抖函数" class="headerlink" title="消抖函数"></a>消抖函数</h3><p>&emsp;&emsp;消抖函数(deBounce)可以在指定的间隔时间段内阻止原函数的重复执行，提高性能：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">debounce</span>(<span class="params">fn, delay = <span class="number">200</span></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> timer = <span class="literal">null</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> (<span class="params">...args</span>) </span>&#123;</span><br><span class="line">    timer &amp;&amp; <span class="built_in">clearTimeout</span>(timer);</span><br><span class="line">    timer = <span class="built_in">setTimeout</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line">      fn.apply(<span class="built_in">this</span>, args);</span><br><span class="line">    &#125;, delay);</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="偏函数"><a href="#偏函数" class="headerlink" title="偏函数"></a>偏函数</h3><p>&emsp;&emsp;偏函数是创建一个调用另外一个部分(参数或变量已预制的函数)的函数，函数可以根据传入的参数来生成一个真正执行的函数。其本身不包括我们真正需要的代码，只是根据传入的参数返回其他函数，返回的函数中才有真正的处理逻辑：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">isType</span>(<span class="params">type</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> (<span class="params">obj</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Object</span>.prototype.toString.call(obj) === <span class="string">`[object <span class="subst">$&#123;type&#125;</span>]`</span>;</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> isString = isType(<span class="string">&quot;String&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isNumber = isType(<span class="string">&quot;Number&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isBoolean = isType(<span class="string">&quot;Boolean&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isUndefined = isType(<span class="string">&quot;Undefined&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isNull = isType(<span class="string">&quot;Null&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isObject = isType(<span class="string">&quot;Object&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isSymbol = isType(<span class="string">&quot;Symbol&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> isFunction = isType(<span class="string">&quot;Function&quot;</span>);</span><br></pre></td></tr></table></figure>
-<p>&emsp;&emsp;这样就利用偏函数快速创建了一组判断对象类型的方法。</p>
-<p>&emsp;&emsp;偏函数和柯里化的区别：柯里化是把一个接受 n 个参数的函数，有原本的一次性传递所有参数并执行变成了可以分多次接受参数再执行；偏函数固定了函数的某个部分，通过传入的参数或者方法返回一个新的函数来接受剩余的参数，数量可能是一个也可能是多个；当一个柯里化函数只接受两次参数时，这时的柯里化函数和偏函数概念类似，可以认为偏函数是柯里化函数的退化版。</p>
 ]]></content>
       <categories>
         <category>前端开发</category>
@@ -558,230 +558,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Linux命令与shell小技巧(三)</title>
-    <url>/2021/08/22/Linux%E5%91%BD%E4%BB%A4%E4%B8%8Eshell%E5%B0%8F%E6%8A%80%E5%B7%A7-%E4%B8%89/</url>
-    <content><![CDATA[<p>本文搜集记录了一些 Linux 下的命令和 shell 脚本使用技巧，内容主要来自：</p>
-<blockquote><p>Linux Shell 脚本攻略（第 3 版）—— 门佳 译</p>
-<footer><strong>[USA] Clif Flynt [IND] Sarath Lakshman [IND] Shantanu Tushar</strong><cite>Linux Shell Scripting Cookbook</cite></footer></blockquote>
-<h2 id="文本操作"><a href="#文本操作" class="headerlink" title="文本操作"></a>文本操作</h2><h3 id="grep-命令"><a href="#grep-命令" class="headerlink" title="grep 命令"></a>grep 命令</h3><p><code>echo -e &quot;this is a word\nnext line&quot; | grep word</code>使用 grep 从标准输入中搜索匹配特定模式的文本行</p>
-<p><code>grep pattern file</code>或<code>grep &quot;pattern&quot; file</code>从文件中搜索匹配特定模式的文本行</p>
-<p><code>grep &quot;pattern&quot; file1 file2 file3</code>同时从多个文件中搜索</p>
-<p><code>grep --color=auto &quot;pattern&quot; file</code>在输出中着重标记出匹配到的模式，参数—color 对在命令中的放置位置没有强制要求，但是通常作为第一个选项出现</p>
-<p><code>grep -E &quot;[a-z]+&quot; file</code>或者<code>egrep &quot;[a-z]+&quot; file</code>使用扩展的正则表达式进行搜索，而 grep 默认使用基础正则表达式</p>
-<p><code>grep -o &quot;pattern&quot; file</code>只输出匹配到的文本</p>
-<p><code>grep -v &quot;pattern&quot; file</code>输出不匹配的所有行</p>
-<p><code>grep -c &quot;pattern&quot; file</code>统计成功匹配的文本行数，加上参数<code>-v</code>可以反转匹配结果，统计不匹配的文本行数</p>
-<blockquote>
-<p>使用<code>-c</code>参数只是统计出成功匹配的文本行数，而不是匹配的次数，如果要统计匹配的次数，可以使用如下的技巧：</p>
-<p><code>grep -o &quot;pattern&quot; | wc -l</code></p>
-</blockquote>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">egrep -c <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line">egerp -o <span class="string">&quot;[0-9+]&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1</span></span><br><span class="line"><span class="comment"># 2</span></span><br><span class="line"><span class="comment"># 3</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 5</span></span><br><span class="line"><span class="comment"># 6</span></span><br><span class="line">egrep -o <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span> | wc -l</span><br><span class="line"><span class="comment"># 6</span></span><br></pre></td></tr></table></figure>
-<span id="more"></span>
-<p><code>grep -n &quot;pattern&quot; file</code>可以显示出匹配行的行号，<code>grep -n &quot;pattern&quot; file1 file2</code>如果有多个文件时，会加上文件名和行号</p>
-<p><code>grep -b &quot;pattern&quot; file</code>输出匹配行的偏移量，<code>grep -bo &quot;pattern&quot; file</code>则会输出匹配结果的偏移量，偏移量是从 0 开始计算的</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">egrep -b <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 0:1wds</span></span><br><span class="line"><span class="comment"># 5:2sdsad</span></span><br><span class="line"><span class="comment"># 12:3sds4sd</span></span><br><span class="line"><span class="comment"># 20:5dsd6da</span></span><br><span class="line">egrep -bo <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 0:1</span></span><br><span class="line"><span class="comment"># 5:2</span></span><br><span class="line"><span class="comment"># 12:3</span></span><br><span class="line"><span class="comment"># 16:4</span></span><br><span class="line"><span class="comment"># 20:5</span></span><br><span class="line"><span class="comment"># 24:6</span></span><br></pre></td></tr></table></figure>
-<p><code>grep -l &quot;pattern&quot; file1 file2</code>列出匹配成功的文件列表，<code>grep -L &quot;pattern&quot; file1 file2</code>则列出没有匹配的文件列表</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat test1</span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">cat test2</span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 56</span></span><br><span class="line">egrep -l <span class="string">&quot;[a-z]+&quot;</span> test1 test2</span><br><span class="line"><span class="comment"># test1</span></span><br><span class="line">egrep -L <span class="string">&quot;[a-z]+&quot;</span> test1 test2</span><br><span class="line"><span class="comment"># test2</span></span><br></pre></td></tr></table></figure>
-<p><code>grep &quot;pattern&quot; path -R</code>会在指定路径中递归的搜索</p>
-<p><code>grep -i &quot;pattern&quot; file</code>搜索时忽略大小写</p>
-<p><code>grep -e &quot;pattern1&quot; -e &quot;pattern2&quot; file</code>可以同时指定多个匹配模式</p>
-<p><code>grep -f pattern_file file</code>可以从文件中读取匹配模式(一个匹配模式一行)，然后进行搜索</p>
-<p><code>grep &quot;pattern&quot; path -R --include &quot;pattern&quot;</code>可以在搜索过程中用通配符指定某些文件，相反的，参数<code>--exclude</code>在搜索过程中使用通配符排除某些文件，<code>--exclude-dir</code>可以排除目录</p>
-<p><code>grep -Z &quot;pattern&quot; file</code>可以使用 0 值字符(\0)作为文件名的终结符，结合参数<code>-l</code>或<code>-L</code>可以搜索出特定文件，然后传递给 xargs 执行下一步操作：</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">grep <span class="string">&quot;pattern&quot;</span> -lZ . -R | xargs -0 rm</span><br></pre></td></tr></table></figure>
-<p><code>grep -q &quot;pattern&quot; file</code>使用静默模式搜索，不会输出搜索结果，只会在执行搜索后返回退出码，执行成功返回退出码 0，否则返回非 0 退出码</p>
-<p><code>grep -A n &quot;pattern&quot; file</code>可以输出匹配行以及之后的 n 行，<code>grep -B n &quot;pattern&quot; file</code>可以输出匹配行和之前的 n 行</p>
-<p><code>grep -A n -B m &quot;pattern&quot; file</code>可以输出匹行以及之前的 m 行和之后的 n 行</p>
-<p><code>grep -C n &quot;pattern&quot; file</code>可以输出匹配行和前后 n 行</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -A 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -B 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line">grep -C 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -A 2 -B 1 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
-<h3 id="cut-命令"><a href="#cut-命令" class="headerlink" title="cut 命令"></a>cut 命令</h3><p>cut 命令按列，而不是按行切分文件，可用于处理使用固定宽度字段的文件、CSV 文件或是由空格分隔的文件(例如标准日志文件)</p>
-<p><code>cut -f FIELD_LIST filename</code>提取指定字段，FIELD_LIST 是需要显示的列，由列号组成，彼此之间用逗号分隔，例如 <code>cut -f 2,3 test</code> 将提取 test 文件中的第 2 列和第 3 列</p>
-<p><code>cut -f FIELD_LIST --complement filename</code>可以显示出没有被 FIELD_LIST 指定的字段</p>
-<p><code>cut -f FIELD_LIST -d delimiter filename</code>可以使用指定的分隔符提取字段</p>
-<p>FIELD_LIST 除了使用列号和逗号的方式指定以外，还可以使用一种更简便的方式：</p>
-<ul>
-<li>N-<br>从第 N 个开始到行尾</li>
-<li>N-M<br>从第 N 个开始到第 M 个(包含第 M 个)</li>
-<li>-M<br>从行首到第 M 个(包含第 M 个)</li>
-</ul>
-<p>除了使用字段(空白符分隔)对列提取外，还可以指定其他的提取方式：</p>
-<ul>
-<li>-b 表示字节</li>
-<li>-c 表示字符</li>
-</ul>
-<p><code>--output-delimiter</code>可以指定输出分隔符，在显示多组数据时尤其有用</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">cat <span class="built_in">test</span> | cut -c 1,3</span><br><span class="line"><span class="comment"># xx</span></span><br><span class="line"><span class="comment"># 13</span></span><br><span class="line"><span class="comment"># ac</span></span><br><span class="line"><span class="comment"># 13</span></span><br><span class="line"><span class="comment"># xx</span></span><br><span class="line">cat <span class="built_in">test</span> | cut -c 1,3 --output-delimiter <span class="string">&quot; -- &quot;</span></span><br><span class="line"><span class="comment"># x -- x</span></span><br><span class="line"><span class="comment"># 1 -- 3</span></span><br><span class="line"><span class="comment"># a -- c</span></span><br><span class="line"><span class="comment"># 1 -- 3</span></span><br><span class="line"><span class="comment"># x -- x</span></span><br></pre></td></tr></table></figure>
-<h3 id="sed-命令"><a href="#sed-命令" class="headerlink" title="sed 命令"></a>sed 命令</h3><p>sed 命令是 stream editor(流编辑器)的缩写，常常用于文本替换。</p>
-<p><code>cat file | sed &#39;s/pattern/replace_string/&#39;</code>使用简单的字符串或正则表达式进行匹配，并替换为新的字符串</p>
-<p><code>sed -i &#39;s/pattern/replace_string/&#39; file</code>可以用修改后的数据替换原文件，sed 默认操作是将替换后的结果输出而不替换原文件</p>
-<p><code>sed -i &#39;s/pattern/replace_string/g&#39; file</code>替换全部匹配的内容，sed 默认只替换首次匹配到的内容，如果是用类似 Ng 的形式，则指定替换第 N 次匹配的内容</p>
-<p><code>sed -i &#39;s|pattern|replace_string|&#39; file</code>使用|作为命令的分隔符，sed 将 s 后的符号视作分隔符，因此可以方便的改变默认分隔符/，如果模式或者替换内容中出现分隔符则因该对其使用\进行转义</p>
-<p><code>sed -i &#39;/^$/d&#39; file</code>使用/d 而不是 s/对匹配内容进行删除而不是替换，正则表达式^$匹配空行，因此该条命令会删除文件中的所有空行</p>
-<p><code>sed -i.bak &#39;s/pattern/replace_string/&#39; file</code>可以在替换文件的同时为原文件生成一个.bak 后缀的备份文件</p>
-<p>参数<code>&amp;</code>指代模式所匹配到的字符串：</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">sed <span class="string">&#x27;s/[a-z]\+/[&amp;]/g&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># [xxx]</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># [abc]</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># [xxx]</span></span><br></pre></td></tr></table></figure>
-<p>参数<code>\N</code>用来指代第 N 个子模式(出现在括号中的正则表达式)匹配的结果：</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">sed <span class="string">&#x27;s/\(^[0-9]\)\([0-9]\)\([0-9]$\)/\2\2\2/g&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 222</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 555</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 888</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
-<p>可以使用管道命令组合多个 sed 命令<br><code>cat file | sed &#39;s/pattern1/replace_string/g&#39; | sed &#39;s/pattern2/replace_string/g&#39;</code>，<br>等同于使用分号分隔多个模式<br><code>cat file | sed &#39;s/pattern1/replace_string/g;s/pattern2/replace_string/g&#39;</code>，<br>也等同于使用<code>-e</code>参数指定多个匹配模式<br><code>cat file | sed -e &#39;s/pattern1/replace_string/g&#39; -e &#39;s/pattern2/replace_string/g&#39;</code></p>
-<p>sed 命令通常使用单引号来引用，如果要在 sed 命令的表达式中使用变量，则可以使用双引号，shell 在调用 sed 前会先扩展双引号中的内容</p>
-<h3 id="awk-命令"><a href="#awk-命令" class="headerlink" title="awk 命令"></a>awk 命令</h3><p>awk 命令可以处理数据流，支持关联数组、递归函数、条件语句等高级功能。</p>
-<p>awk 脚本的结构如下：</p>
-<p><code>awk &#39;BEGIN &#123; commands &#125; PATTERN &#123; commands &#125; END &#123; commands &#125;&#39; file</code>，其中 file 也可以是 stdin 中的输入</p>
-<p>awk 脚本通常由以上三部分构成：BEGIN、END 以及带模式匹配选项的公共语句块(common statement block)，这三个部分都是可选的，可以不出现在脚本中。</p>
-<p>awk 以逐行的形式处理文件。BEGIN 之后的命令先于公共语句块执行，对于匹配 PATTERN 的行，awk 会对其执行 PATTERN 之后的命令，最后，在处理完整个文件之后，awk 会执行 END 之后的命令。</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">awk <span class="string">&#x27;BEGIN &#123;i=0&#125; &#123;i++;print i&#125; END &#123;print &quot;total: &quot; i&#125;&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1</span></span><br><span class="line"><span class="comment"># 2</span></span><br><span class="line"><span class="comment"># 3</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 5</span></span><br><span class="line"><span class="comment"># 6</span></span><br><span class="line"><span class="comment"># total: 6</span></span><br></pre></td></tr></table></figure>
-<p>上面的 awk 脚本打印出文件中的行号以及总行数，可以看出，awk 的工作流程为：</p>
-<ol>
-<li>首先执行 BEGIN { commands }语句块中的语句，由于 BEGIN 语句块在 awk 开始从输入流中读取行之前被执行，因此通常用来做诸如变量初始化、打印输出表格的表头等等，该语句块也可以被省略</li>
-<li>接着从文件或者 stdin 中读取一行，如果能够匹配 PATTERN，则执行后面的 commands，重复这一过程直到全部读取完成</li>
-<li>当读至输入流末尾时，执行 END { commands }语句块，END 语句块和 BEGIN 类似，它在 awk 读取完输入流中所有行后才被执行，因此通常用来做一些收尾工作，比如打印数据处理结果，该语句块也可以被省略</li>
-</ol>
-<p>awk 最重要的部分是和 PATTERN 相关的语句块，该语句块同样可以被省略，如果省略，awk 默认为每一行执行 print，即打印出所读取的每一行。awk 对读取到的每一行都会执行该语句块，相当于一个 while 循环。每读取一行，awk 就会检查该行是否匹配指定模式，该模式本身可以是正则表达式、条件语句以及行范围等。一旦匹配成功，则执行后面的{ commands }。匹配模式同样也是可选的，如果没有提供匹配模式，则 awk 默认匹配所有行。</p>
-<blockquote>
-<p>print 命令能够接收参数并打印，这些参数以逗号分隔，在打印参数时则会以空格作为参数之间的分隔。也可以在 print 语句中使用双引号，双引号被当作拼接操作符使用</p>
-</blockquote>
-<p>awk 命令可以使用一些特殊变量：</p>
-<ul>
-<li>NR<br>表示记录编号，当 awk 将行作为记录时，该变量相当于当前行号</li>
-<li>NF<br>表示字段数量，在处理当前记录时，相当于字段数量，默认的字段分隔符是空格</li>
-<li>$0<br>该变量包含当前记录的文本内容</li>
-<li>$1<br>该变量包含第一个字段的文本内容</li>
-<li>$2<br>该变量包含第二个字段的文本内容</li>
-<li>$N<br>该变量包含第 N 个字段的文本内容</li>
-</ul>
-<blockquote>
-<p>awk 每读取一行，就会自动更新 NR 的值，当到达输入流末尾时，NR 中的值就是最后一行的行号</p>
-</blockquote>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">awk <span class="string">&#x27;&#123; print $0 &#125; END &#123;print &quot;total: &quot; NR&#125;&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># total: 6</span></span><br></pre></td></tr></table></figure>
-<p><code>-v</code>参数可以将外部 z 值(而非来自文件或 stdin)传递给 awk 使用：</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">VAR=1000</span><br><span class="line"><span class="built_in">echo</span> | awk -v VARIABLE=<span class="variable">$VAR</span> <span class="string">&#x27;&#123; print VARIABLE &#125;&#x27;</span></span><br><span class="line"><span class="comment"># 1000</span></span><br></pre></td></tr></table></figure>
-<p>awk 默认读取每一行，如果只想读取某一行，可以在 awk 脚本中使用 getline 函数，通常将其放在 BEGIN 语句块，读取某一行，在进入下一步处理</p>
-<p>awk 脚本中还可以使用条件判断来对行进行过滤，例如<code>awk &#39;NR &lt; 5&#39;</code>只读取行号小于 5 的行，<code>awk &#39;NR==1,NR==4&#39;</code>只读取行号在 1 到 5 之间的行</p>
-<p><code>awk -F delimiter</code>可以通过参数-F 指定字段分隔符，默认的字段分隔符是空格</p>
-<p>awk 中还可以使用关联数组，形如<code>arrayName[index]</code>，关联数组是一种使用字符串作为索引的数组</p>
-<p>awk 还有一些内建的字符串处理函数：</p>
-<ul>
-<li>length(string)<br>返回字符串长度</li>
-<li>index(string,search_string)<br>返回 search_string 字符串在字符串 string 中出现的位置</li>
-<li>split(string,array,delimiter)<br>以 delimiter 作为分隔符，分割字符串 string，将生成的字符串存入数组 array</li>
-<li>substr(string,start-position,end-position)<br>返回字符串中指定起止位置的子串</li>
-<li>sub(regex,replacement_str,string)<br>将正则表达式匹配到的第一处内容做替换</li>
-<li>gsub(regex,replacement_str,string)<br>和 sub 类似，但是替换所有匹配</li>
-<li><p>match(regex,string)<br>检查正则表达式是否可以在字符串 string 中找到匹配。如果能够找到，返回退出码 0，否则返回非 0 退出码</p>
-<h3 id="paste命令"><a href="#paste命令" class="headerlink" title="paste命令"></a>paste命令</h3><p>paste命令可以按列合并文件，并且可以使用参数<code>-d</code>指定输出分隔符，默认的分隔符是制表符(\t)，参数<code>-s</code>可以先将所有列合并成单行在合并连个文件</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat test1</span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">cat test2</span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line">paste -s -d , test1 test2</span><br><span class="line"><span class="comment"># 123,xxx,456,abc,789,xxx</span></span><br><span class="line"><span class="comment"># xxx,789,abc,456,xxx,123</span></span><br><span class="line">paste test1 test2</span><br><span class="line"><span class="comment"># 123     xxx</span></span><br><span class="line"><span class="comment"># xxx     789</span></span><br><span class="line"><span class="comment"># 456     abc</span></span><br><span class="line"><span class="comment"># abc     456</span></span><br><span class="line"><span class="comment"># 789     xxx</span></span><br><span class="line"><span class="comment"># xxx     123</span></span><br></pre></td></tr></table></figure>
-<h3 id="variable-name-start-position-length-文本切片"><a href="#variable-name-start-position-length-文本切片" class="headerlink" title="${variable_name:start_position:length} 文本切片"></a>${variable_name:start_position:length} 文本切片</h3><p>我们可以通过指定文本字符串起始位置和截取长度，从文本字符串中生成子串：</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="variable">$test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$&#123;test:4:3&#125;</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$&#123;test:4:-4&#125;</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
-<h2 id="从网络获取数据"><a href="#从网络获取数据" class="headerlink" title="从网络获取数据"></a>从网络获取数据</h2><h3 id="wget命令"><a href="#wget命令" class="headerlink" title="wget命令"></a>wget命令</h3><p>wget命令可以下载网页或者远程文件。</p>
-<p><code>wget URL</code>从指定网址下载页面，或者<code>wget URL1 URL2 URL3 ...</code>从多个URL处下载</p>
-<p><code>wget URL -O filename</code>可以指定下载后文件的名字，如果存在同名文件，则原文件会被下载文件覆盖</p>
-<p><code>wget URL -o log</code>则可以指定将日志或进度信息写入指定日志文件，而不输出到stdout</p>
-<p><code>wget -t time URL</code>可以指定下载失败时，进行多少次尝试再放弃下载，如果设为0即强制不断的尝试下载直到下载完成</p>
-<p><code>wget --limit-rate rate URL</code>可以对下载进行限速，单位可以使用千字节(K)和兆字节(m)</p>
-<p><code>wget -Q quota URL</code>可以限制下载最大配额，单位同样支持千字节(k)和兆字节(m)，一旦下载大小超出限额则放弃下载</p>
-<p><code>wget -c URL</code>可以对下载完成前被中断的下载进行断点续传</p>
-<p><code>wget --user username --password password URL</code>可以用于需要进行认证的网站</p>
-<h3 id="curl命令"><a href="#curl命令" class="headerlink" title="curl命令"></a>curl命令</h3><p>curl命令可以使用HTTP、HTTPS、FTP协议在客户端和服务器之间传递数据，支持POST、cookie、认证、从指定偏移处下载部分文件、参照页(referer)、用户代理字符串、扩展头部、限速、文件大小限制、进度条等特性。常用于网站维护、数据检索以及服务器配置核对。</p>
-<p>curl默认将下载文件输出到stdout，将进度信息输出到stderr，可以使用参数<code>--silent</code>关闭进度显示。</p>
-<p><code>curl URL</code>将下载信息输出到stdout</p>
-<p><code>curl URL --silent -O</code>关闭进度输出，并且通过参数<code>-O</code>将下载数据写入文件，文件名采用从URL中解析出的文件名，因此这里的URL必须是完整的(www.example.com/index.html)，而不是仅有站点域名</p>
-<p><code>curl URL -o filename</code>则可以用指定文件名来存储下载数据，因此此处的URL可以只是站点的域名</p>
-<p><code>curl URL --progress</code>可以在下载过程中显示形如<strong>#</strong>的进度条</p>
-<p><code>curl URL -C offset</code>可以进行断点续传，需要指明偏移量，将offset写为<code>-</code>则可以让curl自动计算因该从哪里开始续传</p>
-<p><code>curl --referer Referer_URL target_URL</code>可以指定参照页，只有HTTP头部字段中<strong>参照页(Referer)</strong>符合指定地址时，才会从目标地址进行下载</p>
-<p><code>curl URL --cookie &quot;key1=value1;key2=value2&quot;</code>可以指定和存储下载过程中产生的cookie</p>
-<p><code>curl URL --cookie-jar cookie_file</code>可以将所有cookie存入文件</p>
-<p><code>curl URL --user-agent UA</code>或者<code>curl URL -A UA</code>可以设置用户代理字符串</p>
-<p><code>curl -H &quot;key:value&quot; -H &quot;key:value&quot; URL</code>可以发送多个HTTP头部(header)信息</p>
-<p><code>curl URL --limit-rate rate</code>可以限速，用法和wget一样</p>
-<p><code>curl URL --max-filesize size</code>可以限额，用法和wget一样，如果大小超出限额，则命令返回非0退出码，否则返回0退出码</p>
-<p><code>curl -u username:password URL</code>可以进行认证，用法和wget一样</p>
-<p><code>curl -I URL</code>或者<code>curl --head URL</code>可以只下载头部信息而不下载完整的页面</p>
-<h3 id="网络图片爬取及下载"><a href="#网络图片爬取及下载" class="headerlink" title="网络图片爬取及下载"></a>网络图片爬取及下载</h3><p>下面综合利用上述命令，编写一个网络图片爬取及下载的脚本：</p>
-<figure class="highlight sh"><figcaption><span>img_downloader.sh</span></figcaption><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># 用途：图片下载工具</span></span><br><span class="line"><span class="comment"># 文件名： img_downloader.sh</span></span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$#</span> -ne 3 ]</span><br><span class="line"><span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;Usage: <span class="variable">$0</span> URL -d DIRECTORY&quot;</span></span><br><span class="line">  <span class="built_in">exit</span> -1</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> [ <span class="variable">$#</span> -gt 0 ]</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">  <span class="keyword">case</span> <span class="variable">$1</span> <span class="keyword">in</span></span><br><span class="line">  -d) <span class="built_in">shift</span>; directory=<span class="variable">$1</span>; <span class="built_in">shift</span> ;;</span><br><span class="line">  *) url=<span class="variable">$1</span>; <span class="built_in">shift</span> ;;</span><br><span class="line">  <span class="keyword">esac</span></span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"></span><br><span class="line">mkdir -p <span class="variable">$directory</span>;</span><br><span class="line">baseurl=$(<span class="built_in">echo</span> <span class="variable">$url</span> | egrep -o <span class="string">&quot;https?://[a-z.\-]+&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> Downloading <span class="variable">$url</span></span><br><span class="line">curl -s <span class="variable">$url</span> | egrep -o <span class="string">&quot;&lt;img[^&gt;]*src=[^&gt;]*&gt;&quot;</span> | \</span><br><span class="line">  sed <span class="string">&#x27;s/&lt;img[^&gt;]*src=\&quot;\([^&quot;]*\).*/\1/g&#x27;</span> | \</span><br><span class="line">  sed <span class="string">&quot;s,^/,<span class="variable">$baseurl</span>/,&quot;</span> &gt; /tmp/$$.list</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> <span class="variable">$directory</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> <span class="built_in">read</span> filename;</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">  <span class="built_in">echo</span> Downloading <span class="variable">$filename</span></span><br><span class="line">  curl -s -O <span class="string">&quot;<span class="variable">$filename</span>&quot;</span></span><br><span class="line"><span class="keyword">done</span> &lt; /tmp/$$.list</span><br></pre></td></tr></table></figure>
-<h3 id="网页相册生成器"><a href="#网页相册生成器" class="headerlink" title="网页相册生成器"></a>网页相册生成器</h3><p>Web开发中经常会创建包含全尺寸和缩略图的相册。点击缩略图，就会出现一幅放大的图片。如果需要很多图片，每一次都得复制<code>&lt;img&gt;</code>标签、调整图片大小来创建缩略图、把调整好的图片放进缩略图目录。我们可以写一个简单的Bash脚本将这些重复工作自动化，这样一来，创建缩略图、将缩略图放入对应目录、生成<code>&lt;img&gt;</code>标签都可以自动搞定。</p>
-<figure class="highlight sh"><figcaption><span>generate_album.sh</span></figcaption><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># 文件名：generate_album.sh</span></span><br><span class="line"><span class="comment"># 用途：用当前目录下的图片创建相册</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;Creating album...&quot;</span></span><br><span class="line"></span><br><span class="line">currentDir=`<span class="built_in">pwd</span>`</span><br><span class="line">albumName=<span class="variable">$&#123;currentDir##*/&#125;</span></span><br><span class="line"></span><br><span class="line">mkdir -p thumbs</span><br><span class="line">cat &lt;&lt;<span class="string">EOF1 &gt; index.html</span></span><br><span class="line"><span class="string">&lt;!DOCTYPE html&gt;</span></span><br><span class="line"><span class="string">&lt;html lang=&quot;zh-CN&quot;&gt;</span></span><br><span class="line"><span class="string">&lt;head&gt;</span></span><br><span class="line"><span class="string">&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no&quot; &gt;</span></span><br><span class="line"><span class="string">&lt;meta name=&quot;X-UA-Compatible&quot; content=&quot;IE=edge,chrome=1&quot; &gt;</span></span><br><span class="line"><span class="string">&lt;style&gt;</span></span><br><span class="line"><span class="string">  body&#123;</span></span><br><span class="line"><span class="string">    margin:auto;</span></span><br><span class="line"><span class="string">    padding:0 10px;</span></span><br><span class="line"><span class="string">    background-color: darkcyan;</span></span><br><span class="line"><span class="string">    border:1px dashed grey;</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  h1&#123;</span></span><br><span class="line"><span class="string">    position:fixed;</span></span><br><span class="line"><span class="string">    top:0;</span></span><br><span class="line"><span class="string">    margin:0;</span></span><br><span class="line"><span class="string">    padding:10px 0;</span></span><br><span class="line"><span class="string">    width:100%;</span></span><br><span class="line"><span class="string">    height:30px;</span></span><br><span class="line"><span class="string">    line-height:30px;</span></span><br><span class="line"><span class="string">    text-align:center;</span></span><br><span class="line"><span class="string">    color:white;</span></span><br><span class="line"><span class="string">    background-color:darkcyan;</span></span><br><span class="line"><span class="string">    z-index:999;</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  main&#123;</span></span><br><span class="line"><span class="string">    display:flex;</span></span><br><span class="line"><span class="string">    flex-flow:row wrap;</span></span><br><span class="line"><span class="string">    justify-content:space-between;</span></span><br><span class="line"><span class="string">    align-items:center;</span></span><br><span class="line"><span class="string">    margin-top:50px;</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  img&#123;</span></span><br><span class="line"><span class="string">    margin:0 5px 10px;</span></span><br><span class="line"><span class="string">    border:1px solid black;</span></span><br><span class="line"><span class="string">    box-shadow:2px 2px 2px 1px white;</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  img:hover&#123;</span></span><br><span class="line"><span class="string">    transform:scale(1.1);</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string">&lt;/style&gt;</span></span><br><span class="line"><span class="string">&lt;title&gt;$albumName&lt;/title&gt;</span></span><br><span class="line"><span class="string">&lt;/head&gt;</span></span><br><span class="line"><span class="string">&lt;body&gt;</span></span><br><span class="line"><span class="string">  &lt;h1&gt;Photo Album $albumName &lt;/h1&gt;</span></span><br><span class="line"><span class="string">  &lt;main&gt;</span></span><br><span class="line"><span class="string">EOF1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> img <span class="keyword">in</span> `ls <span class="variable">$currentDir</span> | egrep <span class="string">&#x27;*.(jpg|png)&#x27;</span>`</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">  convert <span class="string">&quot;<span class="variable">$img</span>&quot;</span> -resize <span class="string">&quot;100x&quot;</span> <span class="string">&quot;thumbs/<span class="variable">$img</span>&quot;</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;&lt;a href=\&quot;<span class="variable">$img</span>\&quot; &gt;&quot;</span> &gt;&gt; index.html</span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;&lt;img src=\&quot;thumbs/<span class="variable">$img</span>\&quot; title=\&quot;<span class="variable">$img</span>\&quot; /&gt;&lt;/a&gt;&quot;</span> &gt;&gt; index.html</span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"></span><br><span class="line">cat &lt;&lt;<span class="string">EOF2 &gt;&gt; index.html</span></span><br><span class="line"><span class="string">&lt;/main&gt;</span></span><br><span class="line"><span class="string">&lt;/body&gt;</span></span><br><span class="line"><span class="string">&lt;/html&gt;</span></span><br><span class="line"><span class="string">EOF2</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> Album generated to index.html</span><br></pre></td></tr></table></figure>
-<h2 id="归档、压缩与备份"><a href="#归档、压缩与备份" class="headerlink" title="归档、压缩与备份"></a>归档、压缩与备份</h2><h3 id="tar命令"><a href="#tar命令" class="headerlink" title="tar命令"></a>tar命令</h3><p>tar命令可以用来归档文件，它最初是用来将数据存储在磁带上的，因此其名字来源于<br>Tape ARchive。tar可以将多个文件或文件夹打包成单个文件，同时还能保留所有文件属性，如所有者、权限等，由tar创建的文件通常称为tarball。</p>
-<p><code>tar -cf ARchive.tar SOURCES</code>将指定目标打包成指定归档文件名的tarball，其中参数<code>-c</code>表示创建归档文件，参数<code>-f</code>指定归档文件名，文件名必须紧跟在参数<code>-f</code>后面</p>
-<p><code>tar -tf ARchive.tar</code>列出归档中的文件</p>
-<p><code>tar -cvf ARchive.tar SOURCES</code>，参数<code>-v</code>表示冗长模式，即在命令执行过程中输出细节信息，还可以使用参数<code>-vv</code>(非常冗长模式)</p>
-<p><code>tar -rvf ARchive.tar new_file</code>可以向归档文件末尾追加新文件</p>
-<p><code>tar -xvf Archive.tar</code>可以从归档文件中提取内容到当前目录，还可以加上参数<code>-C PATH</code>提取到指定位置</p>
-<p>可以在tar命令中使用stdin和stdout，下面的命令可以将本地数据先归档然后在通过SSH传输到远程并且提取到指定位置：</p>
-<p><code>tar -cvf - SOURCES | ssh user@host &quot;tar -xv -C PATH</code></p>
-<p><code>tar -Af archive1.tar archive2.tar</code>可以将archive2.tar中的内容合并到archive1.tar中</p>
-<p><code>tar -uf ARchive.tar new_file</code>可以向归档文件中追加新文件，和使用参数<code>-r</code>不同，参数<code>-u</code>指定只有当new_file比归档中同名文件更新时才会执行追加操作，否则什么都不会发生，而参数<code>-r</code>则一定会执行追加操作，因此归档中可能出现完全相同的两个同名文件</p>
-<p><code>tar -df ARchive.tar</code>可以将归档中的内容和文件系统中的内容做比较，可以利用这条命令确定是否需要追加新的文件</p>
-<p><code>tar -f ARchive.tar --delete file1 file2 ...</code>可以从归档中删除文件</p>
-<p>tar命令默认只进行归档而不执行文件压缩，但是提供压缩选项来开启压缩功能：</p>
-<ul>
-<li>-z指定开启gzip压缩，输出格式为archive.tar.gz或archive.tgz</li>
-<li>-j指定开启bzip2压缩，输出格式为archive.tar.bz2</li>
-<li>—lzma指定开启Lempel-Ziv-Markov压缩，输出格式为archive.tar.lzma</li>
-</ul>
-<p>也可以使用参数<code>-a</code>让tar命令根据指定的压缩归档文件扩展名选择合适的压缩方式</p>
-<p><code>tar -cvf ARchive.tar SOURCES --exclude PATTERN</code>可以将匹配指定模式的文件排除在归档之外，也可以将要排除的文件列表放入文件中，然后使用参数<code>-X</code>从文件中读取排除内容</p>
-<p><code>tar --exclude-vcs -cvf ARchive.tar SOURCES</code>可以将版本控制目录排除在归档之外</p>
-<p><code>tar -cvf ARchive.tar SOURCES --totals</code>可以在完成归档后显示归档的总字节数，注意如果启用了压缩，实际的压缩归档文件大小会小于显示的这个总字节数</p>
-</li>
-</ul>
-<h3 id="zip、unzip命令"><a href="#zip、unzip命令" class="headerlink" title="zip、unzip命令"></a>zip、unzip命令</h3><p>ZIP作为一种流行的压缩格式，在Mac、Windows和Linux平台下都可以使用，虽然在Linux中它的使用率不及gzip，但是当我们需要向其他平台分发数据时，使用zip非常有用。</p>
-<p><code>zip ARchive_name.zip file1 file2 ...</code>进行压缩归档</p>
-<p><code>zip -r ARchive_name.zip folder1 folder2 ...</code>可以递归的对目录进行压缩归档</p>
-<p><code>zip ARchive_name.zip -u newfile</code>可以更新压缩归档中的文件</p>
-<p><code>zip -d ARchive_name.zip file1 file2 ...</code>从压缩归档文件中删除内容</p>
-<p><code>unzip ARchive_name.zip</code>提取内容</p>
-<p><code>unzip -l ARchive_name.zip</code>列出压缩归档文件中的内容</p>
-<h3 id="squashfs命令"><a href="#squashfs命令" class="headerlink" title="squashfs命令"></a>squashfs命令</h3><p>squashfs程序可以创建出一种具有超高压缩比的只读型文件系统，它可以将2GB~3GB的数据压缩成一个700MB左右的文件。Linux LiveCD(或者Linux LiveUSB)就是使用squashfs创建的，这类CD(USB)利用只读型的压缩文件系统，将根文件系统保存在一个压缩文件中，然后使用环回文件的方式进行挂载，从而装入完成的Linux系统。如果需要某些文件，可以将其解压然后装入内存中使用。解压缩体积较大的压缩文件很费时，但是将其通过环回方式进行挂在，那速度会变得飞快，因为只有出现访问请求时，才会解压缩相应的文件。</p>
-<p>创建squashfs需要使用squashfs-tools，可以使用包管理器来安装。</p>
-<p>首先使用mksquashfs命令添加源目录和文件，创建一个squashfs文件：</p>
-<p><code>mksquashfs SOURCES compressedfs.squashfs</code></p>
-<p>然后利用环回形式挂在squashfs文件：</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">mkdir /mnt/squash</span><br><span class="line">mount -o loop compressedfs.squashfs /mnt/squash</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>创建squashfs文件时，可以通过<code>mksquashfs -e</code>排除指定目录，或者将排除列表放入文件，然后使用参数<code>-ef</code>读取</p>
-</blockquote>
-<h3 id="rsync命令"><a href="#rsync命令" class="headerlink" title="rsync命令"></a>rsync命令</h3><p>rsync命令可以用于本地和远程的数据备份，它可以在最小化数据传输量的同时，同步不同位置上的文件和目录。和cp命令相比，rsync会比较文件修改时间，仅复制较新的文件，而且还支持远程数据传输、压缩和加密。</p>
-<p><code>rsync -av SOURCE_PATH DESTINATION_PATH</code>，该命令可以同步源路径和目标路径的数据，参数<code>-a</code>表示进行归档操作，参数<code>-v</code>表示在stdout上输出细节信息或进度，其中源路径和目标路径既可以是本地位置也可以是远程位置</p>
-<p><code>rsync -avz SOURCE_PATH DESTINATION_PATH</code>使用参数<code>-z</code>指定开启压缩，这样可以明显改善传输效率</p>
-<p>使用参数<code>--exclude</code>可以在备份数据时指定排除的数据，或者使用参数<code>--exclude-from</code>从文件中读取排除内容</p>
-<p>默认情况下，rsync不会在目标路径删除在源路径已经不存在的数据，可以使用参数<code>--delete</code>让rsync在同步数据时，自动删除目标路径中源路径上已经删除的数据</p>
-<p>rsync命令常常搭配cron定时任务，达到定期备份数据的效果</p>
-<h3 id="fsarchiver命令"><a href="#fsarchiver命令" class="headerlink" title="fsarchiver命令"></a>fsarchiver命令</h3><p>fsarchiver命令可以用来备份文件系统或分区，和tar不同，fsarchiver会保留文件的扩展属性。</p>
-<p><code>fsarchiver savefs backup.fsa FS_OR_PARTITION1 FS_OR_PARTITION2 ...</code>备份文件系统或分区到指定文件</p>
-<p><code>fsarchiver restfs backup.fsa id=0,dest=DESTINATION1 id=1,dest=DESTINATION2</code>通过参数<code>id</code>指定提取备份文件中的某个分区，并恢复到指定位置</p>
-<h2 id="网络相关命令"><a href="#网络相关命令" class="headerlink" title="网络相关命令"></a>网络相关命令</h2><h3 id="ssh命令"><a href="#ssh命令" class="headerlink" title="ssh命令"></a>ssh命令</h3><p>SSH代表Secure Shell(安全shell)，它使用加密隧道连接两台计算机，ssh命令可以从本地连接到远程计算机上的shell，从而在远程执行交互命令并接收结果或者启用交互会话等。</p>
-<p>要使用ssh，需要用包管理器安装openssh-server和openssh-client，SSH服务默认运行在端口22上。</p>
-<p><code>ssh username@remote_host</code>连接远程主机，也可以使用参数<code>-p</code>从指定端口进行连接</p>
-<p><code>ssh username@remote_host &quot;command1;command2;...&quot;</code>可以在远程主机上执行命令并且在本地shell中接收结果</p>
-<p><code>ssh -C username@remote_host</code>开启对数据进行压缩传输</p>
-<p>可以通过ssh将数据从定向到远程的stdin，例如：</p>
-<p><code>echo &quot;test&quot; | ssh username@remote_host &#39;echo&#39;</code>将本地stdin的数据传递到远程主机的stdin，</p>
-<p>或者</p>
-<p><code>ssh username@remote_host &#39;echo&#39; &lt; file</code>将本地文件上的数据传递到远程主机的stdin</p>
-<h3 id="scp命令"><a href="#scp命令" class="headerlink" title="scp命令"></a>scp命令</h3><p>scp(Secure Copy Program)命令可以利用ssh加密通道进行文件的安全复制</p>
-<p><code>scp SOURCE DESTINATION</code>进行文件复制，其中的SOURCE和DESTINATION均可以采用形如<code>username@remote_host:/path</code>的形式指定远程位置</p>
-<p>scp使用ssh建立的加密隧道复制文件，因此使用和ssh服务一样的端口，即默认22端口，也可以通过选项<code>-oPort</code>指定其他端口</p>
-<p><code>scp -r SOURCE_FOLDER DESTINATION_FOLDER</code>可以递归的复制目录</p>
-<p><code>scp -p SOURCE DESTINATION</code>可以在复制时保留文件权限和属性</p>
-<h2 id="系统监视相关命令"><a href="#系统监视相关命令" class="headerlink" title="系统监视相关命令"></a>系统监视相关命令</h2><h3 id="du和df命令"><a href="#du和df命令" class="headerlink" title="du和df命令"></a>du和df命令</h3><p>du(disk usage)和df(disk free)可以报告磁盘使用情况</p>
-<p><code>du file1 file2 ...</code>找出指定文件磁盘占用</p>
-<p><code>du -a dir1 dir2 ...</code>递归的输出指定目录中所有文件的磁盘使用情况</p>
-<p><code>du -h file</code>使用更友好可读的方式显示结果</p>
-<p><code>du -c dir</code>可以计算出文件或目录所占用的总的磁盘空间，同时也会输出单个文件的大小</p>
-<p>使用参数<code>-b</code>、<code>-k</code>、<code>-m</code>可以强制使用特定单位显示磁盘使用情况</p>
-<p>参数<code>--exclude</code>和<code>--exclude-from</code>可以从磁盘使用情况统计中排除指定文件或目录</p>
-<p>du命令提供的是磁盘使用情况，而df命令则提供磁盘可用空间信息，用法与du相同</p>
-]]></content>
-      <categories>
-        <category>其他</category>
-      </categories>
-      <tags>
-        <tag>Linux</tag>
-        <tag>Shell</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Linux命令与shell小技巧(二)</title>
     <url>/2021/08/13/Linux%E5%91%BD%E4%BB%A4%E4%B8%8Eshell%E5%B0%8F%E6%8A%80%E5%B7%A7-%E4%BA%8C/</url>
     <content><![CDATA[<p>本文搜集记录了一些 Linux 下的命令和 shell 脚本使用技巧，内容主要来自：</p>
@@ -1177,6 +953,344 @@
       <tags>
         <tag>Python</tag>
         <tag>Scrapy</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Linux命令与shell小技巧(三)</title>
+    <url>/2021/08/22/Linux%E5%91%BD%E4%BB%A4%E4%B8%8Eshell%E5%B0%8F%E6%8A%80%E5%B7%A7-%E4%B8%89/</url>
+    <content><![CDATA[<p>本文搜集记录了一些 Linux 下的命令和 shell 脚本使用技巧，内容主要来自：</p>
+<blockquote><p>Linux Shell 脚本攻略（第 3 版）—— 门佳 译</p>
+<footer><strong>[USA] Clif Flynt [IND] Sarath Lakshman [IND] Shantanu Tushar</strong><cite>Linux Shell Scripting Cookbook</cite></footer></blockquote>
+<h2 id="文本操作"><a href="#文本操作" class="headerlink" title="文本操作"></a>文本操作</h2><h3 id="grep-命令"><a href="#grep-命令" class="headerlink" title="grep 命令"></a>grep 命令</h3><p><code>echo -e &quot;this is a word\nnext line&quot; | grep word</code>使用 grep 从标准输入中搜索匹配特定模式的文本行</p>
+<p><code>grep pattern file</code>或<code>grep &quot;pattern&quot; file</code>从文件中搜索匹配特定模式的文本行</p>
+<p><code>grep &quot;pattern&quot; file1 file2 file3</code>同时从多个文件中搜索</p>
+<p><code>grep --color=auto &quot;pattern&quot; file</code>在输出中着重标记出匹配到的模式，选项—color 对在命令中的放置位置没有强制要求，但是通常作为第一个选项出现</p>
+<p><code>grep -E &quot;[a-z]+&quot; file</code>或者<code>egrep &quot;[a-z]+&quot; file</code>使用扩展的正则表达式进行搜索，而 grep 默认使用基础正则表达式</p>
+<p><code>grep -o &quot;pattern&quot; file</code>只输出匹配到的文本</p>
+<p><code>grep -v &quot;pattern&quot; file</code>输出不匹配的所有行</p>
+<p><code>grep -c &quot;pattern&quot; file</code>统计成功匹配的文本行数，加上选项<code>-v</code>可以反转匹配结果，统计不匹配的文本行数</p>
+<blockquote>
+<p>使用<code>-c</code>选项只是统计出成功匹配的文本行数，而不是匹配的次数，如果要统计匹配的次数，可以使用如下的技巧：</p>
+<p><code>grep -o &quot;pattern&quot; | wc -l</code></p>
+</blockquote>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">egrep -c <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line">egerp -o <span class="string">&quot;[0-9+]&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1</span></span><br><span class="line"><span class="comment"># 2</span></span><br><span class="line"><span class="comment"># 3</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 5</span></span><br><span class="line"><span class="comment"># 6</span></span><br><span class="line">egrep -o <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span> | wc -l</span><br><span class="line"><span class="comment"># 6</span></span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<p><code>grep -n &quot;pattern&quot; file</code>可以显示出匹配行的行号，<code>grep -n &quot;pattern&quot; file1 file2</code>如果有多个文件时，会加上文件名和行号</p>
+<p><code>grep -b &quot;pattern&quot; file</code>输出匹配行的偏移量，<code>grep -bo &quot;pattern&quot; file</code>则会输出匹配结果的偏移量，偏移量是从 0 开始计算的</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">egrep -b <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 0:1wds</span></span><br><span class="line"><span class="comment"># 5:2sdsad</span></span><br><span class="line"><span class="comment"># 12:3sds4sd</span></span><br><span class="line"><span class="comment"># 20:5dsd6da</span></span><br><span class="line">egrep -bo <span class="string">&quot;[0-9]+&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 0:1</span></span><br><span class="line"><span class="comment"># 5:2</span></span><br><span class="line"><span class="comment"># 12:3</span></span><br><span class="line"><span class="comment"># 16:4</span></span><br><span class="line"><span class="comment"># 20:5</span></span><br><span class="line"><span class="comment"># 24:6</span></span><br></pre></td></tr></table></figure>
+<p><code>grep -l &quot;pattern&quot; file1 file2</code>列出匹配成功的文件列表，<code>grep -L &quot;pattern&quot; file1 file2</code>则列出没有匹配的文件列表</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat test1</span><br><span class="line"><span class="comment"># 1wds</span></span><br><span class="line"><span class="comment"># 2sdsad</span></span><br><span class="line"><span class="comment"># 3sds4sd</span></span><br><span class="line"><span class="comment"># 5dsd6da</span></span><br><span class="line">cat test2</span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 56</span></span><br><span class="line">egrep -l <span class="string">&quot;[a-z]+&quot;</span> test1 test2</span><br><span class="line"><span class="comment"># test1</span></span><br><span class="line">egrep -L <span class="string">&quot;[a-z]+&quot;</span> test1 test2</span><br><span class="line"><span class="comment"># test2</span></span><br></pre></td></tr></table></figure>
+<p><code>grep &quot;pattern&quot; path -R</code>会在指定路径中递归的搜索</p>
+<p><code>grep -i &quot;pattern&quot; file</code>搜索时忽略大小写</p>
+<p><code>grep -e &quot;pattern1&quot; -e &quot;pattern2&quot; file</code>可以同时指定多个匹配模式</p>
+<p><code>grep -f pattern_file file</code>可以从文件中读取匹配模式(一个匹配模式一行)，然后进行搜索</p>
+<p><code>grep &quot;pattern&quot; path -R --include &quot;pattern&quot;</code>可以在搜索过程中用通配符指定某些文件，相反的，选项<code>--exclude</code>在搜索过程中使用通配符排除某些文件，<code>--exclude-dir</code>可以排除目录</p>
+<p><code>grep -Z &quot;pattern&quot; file</code>可以使用 0 值字符(\0)作为文件名的终结符，结合选项<code>-l</code>或<code>-L</code>可以搜索出特定文件，然后传递给 xargs 执行下一步操作：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">grep <span class="string">&quot;pattern&quot;</span> -lZ . -R | xargs -0 rm</span><br></pre></td></tr></table></figure>
+<p><code>grep -q &quot;pattern&quot; file</code>使用静默模式搜索，不会输出搜索结果，只会在执行搜索后返回退出码，执行成功返回退出码 0，否则返回非 0 退出码</p>
+<p><code>grep -A n &quot;pattern&quot; file</code>可以输出匹配行以及之后的 n 行，<code>grep -B n &quot;pattern&quot; file</code>可以输出匹配行和之前的 n 行</p>
+<p><code>grep -A n -B m &quot;pattern&quot; file</code>可以输出匹行以及之前的 m 行和之后的 n 行</p>
+<p><code>grep -C n &quot;pattern&quot; file</code>可以输出匹配行和前后 n 行</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -A 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -B 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line">grep -C 2 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">grep -A 2 -B 1 <span class="string">&quot;abc&quot;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
+<h3 id="cut-命令"><a href="#cut-命令" class="headerlink" title="cut 命令"></a>cut 命令</h3><p>cut 命令按列，而不是按行切分文件，可用于处理使用固定宽度字段的文件、CSV 文件或是由空格分隔的文件(例如标准日志文件)</p>
+<p><code>cut -f FIELD_LIST filename</code>提取指定字段，FIELD_LIST 是需要显示的列，由列号组成，彼此之间用逗号分隔，例如 <code>cut -f 2,3 test</code> 将提取 test 文件中的第 2 列和第 3 列</p>
+<p><code>cut -f FIELD_LIST --complement filename</code>可以显示出没有被 FIELD_LIST 指定的字段</p>
+<p><code>cut -f FIELD_LIST -d delimiter filename</code>可以使用指定的分隔符提取字段</p>
+<p>FIELD_LIST 除了使用列号和逗号的方式指定以外，还可以使用一种更简便的方式：</p>
+<ul>
+<li>N-<br>从第 N 个开始到行尾</li>
+<li>N-M<br>从第 N 个开始到第 M 个(包含第 M 个)</li>
+<li>-M<br>从行首到第 M 个(包含第 M 个)</li>
+</ul>
+<p>除了使用字段(空白符分隔)对列提取外，还可以指定其他的提取方式：</p>
+<ul>
+<li>-b 表示字节</li>
+<li>-c 表示字符</li>
+</ul>
+<p><code>--output-delimiter</code>可以指定输出分隔符，在显示多组数据时尤其有用</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">cat <span class="built_in">test</span> | cut -c 1,3</span><br><span class="line"><span class="comment"># xx</span></span><br><span class="line"><span class="comment"># 13</span></span><br><span class="line"><span class="comment"># ac</span></span><br><span class="line"><span class="comment"># 13</span></span><br><span class="line"><span class="comment"># xx</span></span><br><span class="line">cat <span class="built_in">test</span> | cut -c 1,3 --output-delimiter <span class="string">&quot; -- &quot;</span></span><br><span class="line"><span class="comment"># x -- x</span></span><br><span class="line"><span class="comment"># 1 -- 3</span></span><br><span class="line"><span class="comment"># a -- c</span></span><br><span class="line"><span class="comment"># 1 -- 3</span></span><br><span class="line"><span class="comment"># x -- x</span></span><br></pre></td></tr></table></figure>
+<h3 id="sed-命令"><a href="#sed-命令" class="headerlink" title="sed 命令"></a>sed 命令</h3><p>sed 命令是 stream editor(流编辑器)的缩写，常常用于文本替换。</p>
+<p><code>cat file | sed &#39;s/pattern/replace_string/&#39;</code>使用简单的字符串或正则表达式进行匹配，并替换为新的字符串</p>
+<p><code>sed -i &#39;s/pattern/replace_string/&#39; file</code>可以用修改后的数据替换原文件，sed 默认操作是将替换后的结果输出而不替换原文件</p>
+<p><code>sed -i &#39;s/pattern/replace_string/g&#39; file</code>替换全部匹配的内容，sed 默认只替换首次匹配到的内容，如果是用类似 Ng 的形式，则指定替换第 N 次匹配的内容</p>
+<p><code>sed -i &#39;s|pattern|replace_string|&#39; file</code>使用|作为命令的分隔符，sed 将 s 后的符号视作分隔符，因此可以方便的改变默认分隔符/，如果模式或者替换内容中出现分隔符则因该对其使用\进行转义</p>
+<p><code>sed -i &#39;/^$/d&#39; file</code>使用/d 而不是 s/对匹配内容进行删除而不是替换，正则表达式^$匹配空行，因此该条命令会删除文件中的所有空行</p>
+<p><code>sed -i.bak &#39;s/pattern/replace_string/&#39; file</code>可以在替换文件的同时为原文件生成一个.bak 后缀的备份文件</p>
+<p>选项<code>&amp;</code>指代模式所匹配到的字符串：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">sed <span class="string">&#x27;s/[a-z]\+/[&amp;]/g&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># [xxx]</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># [abc]</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># [xxx]</span></span><br></pre></td></tr></table></figure>
+<p>选项<code>\N</code>用来指代第 N 个子模式(出现在括号中的正则表达式)匹配的结果：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">sed <span class="string">&#x27;s/\(^[0-9]\)\([0-9]\)\([0-9]$\)/\2\2\2/g&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 222</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 555</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 888</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
+<p>可以使用管道命令组合多个 sed 命令<br><code>cat file | sed &#39;s/pattern1/replace_string/g&#39; | sed &#39;s/pattern2/replace_string/g&#39;</code>，<br>等同于使用分号分隔多个模式<br><code>cat file | sed &#39;s/pattern1/replace_string/g;s/pattern2/replace_string/g&#39;</code>，<br>也等同于使用<code>-e</code>选项指定多个匹配模式<br><code>cat file | sed -e &#39;s/pattern1/replace_string/g&#39; -e &#39;s/pattern2/replace_string/g&#39;</code></p>
+<p>sed 命令通常使用单引号来引用，如果要在 sed 命令的表达式中使用变量，则可以使用双引号，shell 在调用 sed 前会先扩展双引号中的内容</p>
+<h3 id="awk-命令"><a href="#awk-命令" class="headerlink" title="awk 命令"></a>awk 命令</h3><p>awk 命令可以处理数据流，支持关联数组、递归函数、条件语句等高级功能。</p>
+<p>awk 脚本的结构如下：</p>
+<p><code>awk &#39;BEGIN &#123; commands &#125; PATTERN &#123; commands &#125; END &#123; commands &#125;&#39; file</code>，其中 file 也可以是 stdin 中的输入</p>
+<p>awk 脚本通常由以上三部分构成：BEGIN、END 以及带模式匹配选项的公共语句块(common statement block)，这三个部分都是可选的，可以不出现在脚本中。</p>
+<p>awk 以逐行的形式处理文件。BEGIN 之后的命令先于公共语句块执行，对于匹配 PATTERN 的行，awk 会对其执行 PATTERN 之后的命令，最后，在处理完整个文件之后，awk 会执行 END 之后的命令。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">awk <span class="string">&#x27;BEGIN &#123;i=0&#125; &#123;i++;print i&#125; END &#123;print &quot;total: &quot; i&#125;&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 1</span></span><br><span class="line"><span class="comment"># 2</span></span><br><span class="line"><span class="comment"># 3</span></span><br><span class="line"><span class="comment"># 4</span></span><br><span class="line"><span class="comment"># 5</span></span><br><span class="line"><span class="comment"># 6</span></span><br><span class="line"><span class="comment"># total: 6</span></span><br></pre></td></tr></table></figure>
+<p>上面的 awk 脚本打印出文件中的行号以及总行数，可以看出，awk 的工作流程为：</p>
+<ol>
+<li>首先执行 BEGIN { commands }语句块中的语句，由于 BEGIN 语句块在 awk 开始从输入流中读取行之前被执行，因此通常用来做诸如变量初始化、打印输出表格的表头等等，该语句块也可以被省略</li>
+<li>接着从文件或者 stdin 中读取一行，如果能够匹配 PATTERN，则执行后面的 commands，重复这一过程直到全部读取完成</li>
+<li>当读至输入流末尾时，执行 END { commands }语句块，END 语句块和 BEGIN 类似，它在 awk 读取完输入流中所有行后才被执行，因此通常用来做一些收尾工作，比如打印数据处理结果，该语句块也可以被省略</li>
+</ol>
+<p>awk 最重要的部分是和 PATTERN 相关的语句块，该语句块同样可以被省略，如果省略，awk 默认为每一行执行 print，即打印出所读取的每一行。awk 对读取到的每一行都会执行该语句块，相当于一个 while 循环。每读取一行，awk 就会检查该行是否匹配指定模式，该模式本身可以是正则表达式、条件语句以及行范围等。一旦匹配成功，则执行后面的{ commands }。匹配模式同样也是可选的，如果没有提供匹配模式，则 awk 默认匹配所有行。</p>
+<blockquote>
+<p>print 命令能够接收选项并打印，这些选项以逗号分隔，在打印选项时则会以空格作为选项之间的分隔。也可以在 print 语句中使用双引号，双引号被当作拼接操作符使用</p>
+</blockquote>
+<p>awk 命令可以使用一些特殊变量：</p>
+<ul>
+<li>NR<br>表示记录编号，当 awk 将行作为记录时，该变量相当于当前行号</li>
+<li>NF<br>表示字段数量，在处理当前记录时，相当于字段数量，默认的字段分隔符是空格</li>
+<li>$0<br>该变量包含当前记录的文本内容</li>
+<li>$1<br>该变量包含第一个字段的文本内容</li>
+<li>$2<br>该变量包含第二个字段的文本内容</li>
+<li>$N<br>该变量包含第 N 个字段的文本内容</li>
+</ul>
+<blockquote>
+<p>awk 每读取一行，就会自动更新 NR 的值，当到达输入流末尾时，NR 中的值就是最后一行的行号</p>
+</blockquote>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">awk <span class="string">&#x27;&#123; print $0 &#125; END &#123;print &quot;total: &quot; NR&#125;&#x27;</span> <span class="built_in">test</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># total: 6</span></span><br></pre></td></tr></table></figure>
+<p><code>-v</code>选项可以将外部 z 值(而非来自文件或 stdin)传递给 awk 使用：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">VAR=1000</span><br><span class="line"><span class="built_in">echo</span> | awk -v VARIABLE=<span class="variable">$VAR</span> <span class="string">&#x27;&#123; print VARIABLE &#125;&#x27;</span></span><br><span class="line"><span class="comment"># 1000</span></span><br></pre></td></tr></table></figure>
+<p>awk 默认读取每一行，如果只想读取某一行，可以在 awk 脚本中使用 getline 函数，通常将其放在 BEGIN 语句块，读取某一行，在进入下一步处理</p>
+<p>awk 脚本中还可以使用条件判断来对行进行过滤，例如<code>awk &#39;NR &lt; 5&#39;</code>只读取行号小于 5 的行，<code>awk &#39;NR==1,NR==4&#39;</code>只读取行号在 1 到 5 之间的行</p>
+<p><code>awk -F delimiter</code>可以通过选项-F 指定字段分隔符，默认的字段分隔符是空格</p>
+<p>awk 中还可以使用关联数组，形如<code>arrayName[index]</code>，关联数组是一种使用字符串作为索引的数组</p>
+<p>awk 还有一些内建的字符串处理函数：</p>
+<ul>
+<li>length(string)<br>返回字符串长度</li>
+<li>index(string,search_string)<br>返回 search_string 字符串在字符串 string 中出现的位置</li>
+<li>split(string,array,delimiter)<br>以 delimiter 作为分隔符，分割字符串 string，将生成的字符串存入数组 array</li>
+<li>substr(string,start-position,end-position)<br>返回字符串中指定起止位置的子串</li>
+<li>sub(regex,replacement_str,string)<br>将正则表达式匹配到的第一处内容做替换</li>
+<li>gsub(regex,replacement_str,string)<br>和 sub 类似，但是替换所有匹配</li>
+<li>match(regex,string)<br>检查正则表达式是否可以在字符串 string 中找到匹配。如果能够找到，返回退出码 0，否则返回非 0 退出码</li>
+</ul>
+<h3 id="paste-命令"><a href="#paste-命令" class="headerlink" title="paste 命令"></a>paste 命令</h3><p>paste 命令可以按列合并文件，并且可以使用选项<code>-d</code>指定输出分隔符，默认的分隔符是制表符(\t)，选项<code>-s</code>可以先将所有列合并成单行在合并连个文件</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cat test1</span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line">cat test2</span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line">paste -s -d , test1 test2</span><br><span class="line"><span class="comment"># 123,xxx,456,abc,789,xxx</span></span><br><span class="line"><span class="comment"># xxx,789,abc,456,xxx,123</span></span><br><span class="line">paste test1 test2</span><br><span class="line"><span class="comment"># 123     xxx</span></span><br><span class="line"><span class="comment"># xxx     789</span></span><br><span class="line"><span class="comment"># 456     abc</span></span><br><span class="line"><span class="comment"># abc     456</span></span><br><span class="line"><span class="comment"># 789     xxx</span></span><br><span class="line"><span class="comment"># xxx     123</span></span><br></pre></td></tr></table></figure>
+<h3 id="variable-name-start-position-length-文本切片"><a href="#variable-name-start-position-length-文本切片" class="headerlink" title="${variable_name:start_position:length} 文本切片"></a>${variable_name:start_position:length} 文本切片</h3><p>我们可以通过指定文本字符串起始位置和截取长度，从文本字符串中生成子串：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="variable">$test</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># xxx</span></span><br><span class="line"><span class="comment"># 123</span></span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$&#123;test:4:3&#125;</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$&#123;test:4:-4&#125;</span></span><br><span class="line"><span class="comment"># 789</span></span><br><span class="line"><span class="comment"># abc</span></span><br><span class="line"><span class="comment"># 456</span></span><br><span class="line"><span class="comment"># xxx</span></span><br></pre></td></tr></table></figure>
+<h2 id="从网络获取数据"><a href="#从网络获取数据" class="headerlink" title="从网络获取数据"></a>从网络获取数据</h2><h3 id="wget-命令"><a href="#wget-命令" class="headerlink" title="wget 命令"></a>wget 命令</h3><p>wget 命令可以下载网页或者远程文件。</p>
+<p><code>wget URL</code>从指定网址下载页面，或者<code>wget URL1 URL2 URL3 ...</code>从多个 URL 处下载</p>
+<p><code>wget URL -O filename</code>可以指定下载后文件的名字，如果存在同名文件，则原文件会被下载文件覆盖</p>
+<p><code>wget URL -o log</code>则可以指定将日志或进度信息写入指定日志文件，而不输出到 stdout</p>
+<p><code>wget -t time URL</code>可以指定下载失败时，进行多少次尝试再放弃下载，如果设为 0 即强制不断的尝试下载直到下载完成</p>
+<p><code>wget --limit-rate rate URL</code>可以对下载进行限速，单位可以使用千字节(K)和兆字节(m)</p>
+<p><code>wget -Q quota URL</code>可以限制下载最大配额，单位同样支持千字节(k)和兆字节(m)，一旦下载大小超出限额则放弃下载</p>
+<p><code>wget -c URL</code>可以对下载完成前被中断的下载进行断点续传</p>
+<p><code>wget --user username --password password URL</code>可以用于需要进行认证的网站</p>
+<h3 id="curl-命令"><a href="#curl-命令" class="headerlink" title="curl 命令"></a>curl 命令</h3><p>curl 命令可以使用 HTTP、HTTPS、FTP 协议在客户端和服务器之间传递数据，支持 POST、cookie、认证、从指定偏移处下载部分文件、参照页(referer)、用户代理字符串、扩展头部、限速、文件大小限制、进度条等特性。常用于网站维护、数据检索以及服务器配置核对。</p>
+<p>curl 默认将下载文件输出到 stdout，将进度信息输出到 stderr，可以使用选项<code>--silent</code>关闭进度显示。</p>
+<p><code>curl URL</code>将下载信息输出到 stdout</p>
+<p><code>curl URL --silent -O</code>关闭进度输出，并且通过选项<code>-O</code>将下载数据写入文件，文件名采用从 URL 中解析出的文件名，因此这里的 URL 必须是完整的(www.example.com/index.html)，而不是仅有站点域名</p>
+<p><code>curl URL -o filename</code>则可以用指定文件名来存储下载数据，因此此处的 URL 可以只是站点的域名</p>
+<p><code>curl URL --progress</code>可以在下载过程中显示形如<strong>#</strong>的进度条</p>
+<p><code>curl URL -C offset</code>可以进行断点续传，需要指明偏移量，将 offset 写为<code>-</code>则可以让 curl 自动计算因该从哪里开始续传</p>
+<p><code>curl --referer Referer_URL target_URL</code>可以指定参照页，只有 HTTP 头部字段中<strong>参照页(Referer)</strong>符合指定地址时，才会从目标地址进行下载</p>
+<p><code>curl URL --cookie &quot;key1=value1;key2=value2&quot;</code>可以指定和存储下载过程中产生的 cookie</p>
+<p><code>curl URL --cookie-jar cookie_file</code>可以将所有 cookie 存入文件</p>
+<p><code>curl URL --user-agent UA</code>或者<code>curl URL -A UA</code>可以设置用户代理字符串</p>
+<p><code>curl -H &quot;key:value&quot; -H &quot;key:value&quot; URL</code>可以发送多个 HTTP 头部(header)信息</p>
+<p><code>curl URL --limit-rate rate</code>可以限速，用法和 wget 一样</p>
+<p><code>curl URL --max-filesize size</code>可以限额，用法和 wget 一样，如果大小超出限额，则命令返回非 0 退出码，否则返回 0 退出码</p>
+<p><code>curl -u username:password URL</code>可以进行认证，用法和 wget 一样</p>
+<p><code>curl -I URL</code>或者<code>curl --head URL</code>可以只下载头部信息而不下载完整的页面</p>
+<h3 id="网络图片爬取及下载"><a href="#网络图片爬取及下载" class="headerlink" title="网络图片爬取及下载"></a>网络图片爬取及下载</h3><p>下面综合利用上述命令，编写一个网络图片爬取及下载的脚本：</p>
+<figure class="highlight sh"><figcaption><span>img_downloader.sh</span></figcaption><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># 用途：图片下载工具</span></span><br><span class="line"><span class="comment"># 文件名： img_downloader.sh</span></span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$#</span> -ne 3 ]</span><br><span class="line"><span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;Usage: <span class="variable">$0</span> URL -d DIRECTORY&quot;</span></span><br><span class="line">  <span class="built_in">exit</span> -1</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> [ <span class="variable">$#</span> -gt 0 ]</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">  <span class="keyword">case</span> <span class="variable">$1</span> <span class="keyword">in</span></span><br><span class="line">  -d) <span class="built_in">shift</span>; directory=<span class="variable">$1</span>; <span class="built_in">shift</span> ;;</span><br><span class="line">  *) url=<span class="variable">$1</span>; <span class="built_in">shift</span> ;;</span><br><span class="line">  <span class="keyword">esac</span></span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"></span><br><span class="line">mkdir -p <span class="variable">$directory</span>;</span><br><span class="line">baseurl=$(<span class="built_in">echo</span> <span class="variable">$url</span> | egrep -o <span class="string">&quot;https?://[a-z.\-]+&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> Downloading <span class="variable">$url</span></span><br><span class="line">curl -s <span class="variable">$url</span> | egrep -o <span class="string">&quot;&lt;img[^&gt;]*src=[^&gt;]*&gt;&quot;</span> | \</span><br><span class="line">  sed <span class="string">&#x27;s/&lt;img[^&gt;]*src=\&quot;\([^&quot;]*\).*/\1/g&#x27;</span> | \</span><br><span class="line">  sed <span class="string">&quot;s,^/,<span class="variable">$baseurl</span>/,&quot;</span> &gt; /tmp/$$.list</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> <span class="variable">$directory</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> <span class="built_in">read</span> filename;</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">  <span class="built_in">echo</span> Downloading <span class="variable">$filename</span></span><br><span class="line">  curl -s -O <span class="string">&quot;<span class="variable">$filename</span>&quot;</span></span><br><span class="line"><span class="keyword">done</span> &lt; /tmp/$$.list</span><br></pre></td></tr></table></figure>
+<h3 id="网页相册生成器"><a href="#网页相册生成器" class="headerlink" title="网页相册生成器"></a>网页相册生成器</h3><p>Web 开发中经常会创建包含全尺寸和缩略图的相册。点击缩略图，就会出现一幅放大的图片。如果需要很多图片，每一次都得复制<code>&lt;img&gt;</code>标签、调整图片大小来创建缩略图、把调整好的图片放进缩略图目录。我们可以写一个简单的 Bash 脚本将这些重复工作自动化，这样一来，创建缩略图、将缩略图放入对应目录、生成<code>&lt;img&gt;</code>标签都可以自动搞定。</p>
+<figure class="highlight sh"><figcaption><span>generate_album.sh</span></figcaption><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># 文件名：generate_album.sh</span></span><br><span class="line"><span class="comment"># 用途：用当前目录下的图片创建相册</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;Creating album...&quot;</span></span><br><span class="line"></span><br><span class="line">currentDir=`<span class="built_in">pwd</span>`</span><br><span class="line">albumName=<span class="variable">$&#123;currentDir##*/&#125;</span></span><br><span class="line"></span><br><span class="line">mkdir -p thumbs</span><br><span class="line">cat &lt;&lt;<span class="string">EOF1 &gt; index.html</span></span><br><span class="line"><span class="string">&lt;!DOCTYPE html&gt;</span></span><br><span class="line"><span class="string">&lt;html lang=&quot;zh-CN&quot;&gt;</span></span><br><span class="line"><span class="string">&lt;head&gt;</span></span><br><span class="line"><span class="string">&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no&quot; &gt;</span></span><br><span class="line"><span class="string">&lt;meta name=&quot;X-UA-Compatible&quot; content=&quot;IE=edge,chrome=1&quot; &gt;</span></span><br><span class="line"><span class="string">&lt;style&gt;</span></span><br><span class="line"><span class="string">  body&#123;</span></span><br><span class="line"><span class="string">    margin:auto;</span></span><br><span class="line"><span class="string">    padding:0 10px;</span></span><br><span class="line"><span class="string">    background-color: darkcyan;</span></span><br><span class="line"><span class="string">    border:1px dashed grey;</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  h1&#123;</span></span><br><span class="line"><span class="string">    position:fixed;</span></span><br><span class="line"><span class="string">    top:0;</span></span><br><span class="line"><span class="string">    margin:0;</span></span><br><span class="line"><span class="string">    padding:10px 0;</span></span><br><span class="line"><span class="string">    width:100%;</span></span><br><span class="line"><span class="string">    height:30px;</span></span><br><span class="line"><span class="string">    line-height:30px;</span></span><br><span class="line"><span class="string">    text-align:center;</span></span><br><span class="line"><span class="string">    color:white;</span></span><br><span class="line"><span class="string">    background-color:darkcyan;</span></span><br><span class="line"><span class="string">    z-index:999;</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  main&#123;</span></span><br><span class="line"><span class="string">    display:flex;</span></span><br><span class="line"><span class="string">    flex-flow:row wrap;</span></span><br><span class="line"><span class="string">    justify-content:space-between;</span></span><br><span class="line"><span class="string">    align-items:center;</span></span><br><span class="line"><span class="string">    margin-top:50px;</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  img&#123;</span></span><br><span class="line"><span class="string">    margin:0 5px 10px;</span></span><br><span class="line"><span class="string">    border:1px solid black;</span></span><br><span class="line"><span class="string">    box-shadow:2px 2px 2px 1px white;</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">  img:hover&#123;</span></span><br><span class="line"><span class="string">    transform:scale(1.1);</span></span><br><span class="line"><span class="string">  &#125;</span></span><br><span class="line"><span class="string">&lt;/style&gt;</span></span><br><span class="line"><span class="string">&lt;title&gt;$albumName&lt;/title&gt;</span></span><br><span class="line"><span class="string">&lt;/head&gt;</span></span><br><span class="line"><span class="string">&lt;body&gt;</span></span><br><span class="line"><span class="string">  &lt;h1&gt;Photo Album $albumName &lt;/h1&gt;</span></span><br><span class="line"><span class="string">  &lt;main&gt;</span></span><br><span class="line"><span class="string">EOF1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> img <span class="keyword">in</span> `ls <span class="variable">$currentDir</span> | egrep <span class="string">&#x27;*.(jpg|png)&#x27;</span>`</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">  convert <span class="string">&quot;<span class="variable">$img</span>&quot;</span> -resize <span class="string">&quot;100x&quot;</span> <span class="string">&quot;thumbs/<span class="variable">$img</span>&quot;</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;&lt;a href=\&quot;<span class="variable">$img</span>\&quot; &gt;&quot;</span> &gt;&gt; index.html</span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;&lt;img src=\&quot;thumbs/<span class="variable">$img</span>\&quot; title=\&quot;<span class="variable">$img</span>\&quot; /&gt;&lt;/a&gt;&quot;</span> &gt;&gt; index.html</span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"></span><br><span class="line">cat &lt;&lt;<span class="string">EOF2 &gt;&gt; index.html</span></span><br><span class="line"><span class="string">&lt;/main&gt;</span></span><br><span class="line"><span class="string">&lt;/body&gt;</span></span><br><span class="line"><span class="string">&lt;/html&gt;</span></span><br><span class="line"><span class="string">EOF2</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> Album generated to index.html</span><br></pre></td></tr></table></figure>
+<h2 id="归档、压缩与备份"><a href="#归档、压缩与备份" class="headerlink" title="归档、压缩与备份"></a>归档、压缩与备份</h2><h3 id="tar-命令"><a href="#tar-命令" class="headerlink" title="tar 命令"></a>tar 命令</h3><p>tar 命令可以用来归档文件，它最初是用来将数据存储在磁带上的，因此其名字来源于<br>Tape ARchive。tar 可以将多个文件或文件夹打包成单个文件，同时还能保留所有文件属性，如所有者、权限等，由 tar 创建的文件通常称为 tarball。</p>
+<p><code>tar -cf ARchive.tar SOURCES</code>将指定目标打包成指定归档文件名的 tarball，其中选项<code>-c</code>表示创建归档文件，选项<code>-f</code>指定归档文件名，文件名必须紧跟在选项<code>-f</code>后面</p>
+<p><code>tar -tf ARchive.tar</code>列出归档中的文件</p>
+<p><code>tar -cvf ARchive.tar SOURCES</code>，选项<code>-v</code>表示冗长模式，即在命令执行过程中输出细节信息，还可以使用选项<code>-vv</code>(非常冗长模式)</p>
+<p><code>tar -rvf ARchive.tar new_file</code>可以向归档文件末尾追加新文件</p>
+<p><code>tar -xvf Archive.tar</code>可以从归档文件中提取内容到当前目录，还可以加上选项<code>-C PATH</code>提取到指定位置</p>
+<p>可以在 tar 命令中使用 stdin 和 stdout，下面的命令可以将本地数据先归档然后在通过 SSH 传输到远程并且提取到指定位置：</p>
+<p><code>tar -cvf - SOURCES | ssh user@host &quot;tar -xv -C PATH</code></p>
+<p><code>tar -Af archive1.tar archive2.tar</code>可以将 archive2.tar 中的内容合并到 archive1.tar 中</p>
+<p><code>tar -uf ARchive.tar new_file</code>可以向归档文件中追加新文件，和使用选项<code>-r</code>不同，选项<code>-u</code>指定只有当 new_file 比归档中同名文件更新时才会执行追加操作，否则什么都不会发生，而选项<code>-r</code>则一定会执行追加操作，因此归档中可能出现完全相同的两个同名文件</p>
+<p><code>tar -df ARchive.tar</code>可以将归档中的内容和文件系统中的内容做比较，可以利用这条命令确定是否需要追加新的文件</p>
+<p><code>tar -f ARchive.tar --delete file1 file2 ...</code>可以从归档中删除文件</p>
+<p>tar 命令默认只进行归档而不执行文件压缩，但是提供压缩选项来开启压缩功能：</p>
+<ul>
+<li>-z 指定开启 gzip 压缩，输出格式为 archive.tar.gz 或 archive.tgz</li>
+<li>-j 指定开启 bzip2 压缩，输出格式为 archive.tar.bz2</li>
+<li>—lzma 指定开启 Lempel-Ziv-Markov 压缩，输出格式为 archive.tar.lzma</li>
+</ul>
+<p>也可以使用选项<code>-a</code>让 tar 命令根据指定的压缩归档文件扩展名选择合适的压缩方式</p>
+<p><code>tar -cvf ARchive.tar SOURCES --exclude PATTERN</code>可以将匹配指定模式的文件排除在归档之外，也可以将要排除的文件列表放入文件中，然后使用选项<code>-X</code>从文件中读取排除内容</p>
+<p><code>tar --exclude-vcs -cvf ARchive.tar SOURCES</code>可以将版本控制目录排除在归档之外</p>
+<p><code>tar -cvf ARchive.tar SOURCES --totals</code>可以在完成归档后显示归档的总字节数，注意如果启用了压缩，实际的压缩归档文件大小会小于显示的这个总字节数</p>
+<h3 id="zip、unzip-命令"><a href="#zip、unzip-命令" class="headerlink" title="zip、unzip 命令"></a>zip、unzip 命令</h3><p>ZIP 作为一种流行的压缩格式，在 Mac、Windows 和 Linux 平台下都可以使用，虽然在 Linux 中它的使用率不及 gzip，但是当我们需要向其他平台分发数据时，使用 zip 非常有用。</p>
+<p><code>zip ARchive_name.zip file1 file2 ...</code>进行压缩归档</p>
+<p><code>zip -r ARchive_name.zip folder1 folder2 ...</code>可以递归的对目录进行压缩归档</p>
+<p><code>zip ARchive_name.zip -u newfile</code>可以更新压缩归档中的文件</p>
+<p><code>zip -d ARchive_name.zip file1 file2 ...</code>从压缩归档文件中删除内容</p>
+<p><code>unzip ARchive_name.zip</code>提取内容</p>
+<p><code>unzip -l ARchive_name.zip</code>列出压缩归档文件中的内容</p>
+<h3 id="squashfs-命令"><a href="#squashfs-命令" class="headerlink" title="squashfs 命令"></a>squashfs 命令</h3><p>squashfs 程序可以创建出一种具有超高压缩比的只读型文件系统，它可以将 2GB~3GB 的数据压缩成一个 700MB 左右的文件。Linux LiveCD(或者 Linux LiveUSB)就是使用 squashfs 创建的，这类 CD(USB)利用只读型的压缩文件系统，将根文件系统保存在一个压缩文件中，然后使用环回文件的方式进行挂载，从而装入完成的 Linux 系统。如果需要某些文件，可以将其解压然后装入内存中使用。解压缩体积较大的压缩文件很费时，但是将其通过环回方式进行挂在，那速度会变得飞快，因为只有出现访问请求时，才会解压缩相应的文件。</p>
+<p>创建 squashfs 需要使用 squashfs-tools，可以使用包管理器来安装。</p>
+<p>首先使用 mksquashfs 命令添加源目录和文件，创建一个 squashfs 文件：</p>
+<p><code>mksquashfs SOURCES compressedfs.squashfs</code></p>
+<p>然后利用环回形式挂在 squashfs 文件：</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">mkdir /mnt/squash</span><br><span class="line">mount -o loop compressedfs.squashfs /mnt/squash</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>创建 squashfs 文件时，可以通过<code>mksquashfs -e</code>排除指定目录，或者将排除列表放入文件，然后使用选项<code>-ef</code>读取</p>
+</blockquote>
+<h3 id="rsync-命令"><a href="#rsync-命令" class="headerlink" title="rsync 命令"></a>rsync 命令</h3><p>rsync 命令可以用于本地和远程的数据备份，它可以在最小化数据传输量的同时，同步不同位置上的文件和目录。和 cp 命令相比，rsync 会比较文件修改时间，仅复制较新的文件，而且还支持远程数据传输、压缩和加密。</p>
+<p><code>rsync -av SOURCE_PATH DESTINATION_PATH</code>，该命令可以同步源路径和目标路径的数据，选项<code>-a</code>表示进行归档操作，选项<code>-v</code>表示在 stdout 上输出细节信息或进度，其中源路径和目标路径既可以是本地位置也可以是远程位置</p>
+<p><code>rsync -avz SOURCE_PATH DESTINATION_PATH</code>使用选项<code>-z</code>指定开启压缩，这样可以明显改善传输效率</p>
+<p>使用选项<code>--exclude</code>可以在备份数据时指定排除的数据，或者使用选项<code>--exclude-from</code>从文件中读取排除内容</p>
+<p>默认情况下，rsync 不会在目标路径删除在源路径已经不存在的数据，可以使用选项<code>--delete</code>让 rsync 在同步数据时，自动删除目标路径中源路径上已经删除的数据</p>
+<p>rsync 命令常常搭配 cron 定时任务，达到定期备份数据的效果</p>
+<h3 id="fsarchiver-命令"><a href="#fsarchiver-命令" class="headerlink" title="fsarchiver 命令"></a>fsarchiver 命令</h3><p>fsarchiver 命令可以用来备份文件系统或分区，和 tar 不同，fsarchiver 会保留文件的扩展属性。</p>
+<p><code>fsarchiver savefs backup.fsa FS_OR_PARTITION1 FS_OR_PARTITION2 ...</code>备份文件系统或分区到指定文件</p>
+<p><code>fsarchiver restfs backup.fsa id=0,dest=DESTINATION1 id=1,dest=DESTINATION2</code>通过选项<code>id</code>指定提取备份文件中的某个分区，并恢复到指定位置</p>
+<h2 id="网络相关命令"><a href="#网络相关命令" class="headerlink" title="网络相关命令"></a>网络相关命令</h2><h3 id="ssh-命令"><a href="#ssh-命令" class="headerlink" title="ssh 命令"></a>ssh 命令</h3><p>SSH 代表 Secure Shell(安全 shell)，它使用加密隧道连接两台计算机，ssh 命令可以从本地连接到远程计算机上的 shell，从而在远程执行交互命令并接收结果或者启用交互会话等。</p>
+<p>要使用 ssh，需要用包管理器安装 openssh-server 和 openssh-client，SSH 服务默认运行在端口 22 上。</p>
+<p><code>ssh username@remote_host</code>连接远程主机，也可以使用选项<code>-p</code>从指定端口进行连接</p>
+<p><code>ssh username@remote_host &quot;command1;command2;...&quot;</code>可以在远程主机上执行命令并且在本地 shell 中接收结果</p>
+<p><code>ssh -C username@remote_host</code>开启对数据进行压缩传输</p>
+<p>可以通过 ssh 将数据从定向到远程的 stdin，例如：</p>
+<p><code>echo &quot;test&quot; | ssh username@remote_host &#39;echo&#39;</code>将本地 stdin 的数据传递到远程主机的 stdin，</p>
+<p>或者</p>
+<p><code>ssh username@remote_host &#39;echo&#39; &lt; file</code>将本地文件上的数据传递到远程主机的 stdin</p>
+<h3 id="scp-命令"><a href="#scp-命令" class="headerlink" title="scp 命令"></a>scp 命令</h3><p>scp(Secure Copy Program)命令可以利用 ssh 加密通道进行文件的安全复制</p>
+<p><code>scp SOURCE DESTINATION</code>进行文件复制，其中的 SOURCE 和 DESTINATION 均可以采用形如<code>username@remote_host:/path</code>的形式指定远程位置</p>
+<p>scp 使用 ssh 建立的加密隧道复制文件，因此使用和 ssh 服务一样的端口，即默认 22 端口，也可以通过选项<code>-oPort</code>指定其他端口</p>
+<p><code>scp -r SOURCE_FOLDER DESTINATION_FOLDER</code>可以递归的复制目录</p>
+<p><code>scp -p SOURCE DESTINATION</code>可以在复制时保留文件权限和属性</p>
+<h2 id="系统监视相关命令"><a href="#系统监视相关命令" class="headerlink" title="系统监视相关命令"></a>系统监视相关命令</h2><h3 id="du-和-df-命令"><a href="#du-和-df-命令" class="headerlink" title="du 和 df 命令"></a>du 和 df 命令</h3><p>du(disk usage)和 df(disk free)可以报告磁盘使用情况</p>
+<p><code>du file1 file2 ...</code>找出指定文件磁盘占用</p>
+<p><code>du -a dir1 dir2 ...</code>递归的输出指定目录中所有文件的磁盘使用情况</p>
+<p><code>du -h file</code>使用更友好可读的方式显示结果</p>
+<p><code>du -c dir</code>可以计算出文件或目录所占用的总的磁盘空间，同时也会输出单个文件的大小</p>
+<p>使用选项<code>-b</code>、<code>-k</code>、<code>-m</code>可以强制使用特定单位显示磁盘使用情况</p>
+<p>选项<code>--exclude</code>和<code>--exclude-from</code>可以从磁盘使用情况统计中排除指定文件或目录</p>
+<p>du 命令提供的是磁盘使用情况，而 df 命令则提供磁盘可用空间信息，选项<code>-h</code>以易读的格式输出磁盘空间信息，客气 df 命令可以使用目录作为选项，在这种情况下，会输出该目录所在分区的可用磁盘分区信息，因此在不知道目录所在分区时，这种方法很有用。</p>
+<h3 id="time-命令"><a href="#time-命令" class="headerlink" title="time 命令"></a>time 命令</h3><p>time 命令可以测量出应用程序的执行时间：</p>
+<p><code>time APPLICATION</code>会执行应用，当应用执行完成后，将执行结果输出到 stdout，将执行应用所花费的 real 时间、sys 时间和 user 时间输出到 stderr，使用选项<code>-o</code>可以将时间信息写入到指定文件中</p>
+<blockquote>
+<p>time 命令的可执行二进制文件位于/usr/bin/time，另外还有一个 bash shell 的内建命令也叫做 time。当执行 time 时，默认调用的是 shell 的内建命令，该命令支持的选项有限，想要使用额外的功能，则需要明确调用/usr/bin/time</p>
+</blockquote>
+<p>使用选项<code>-ao</code>可以将时间信息追加到原文件末尾</p>
+<p>选项<code>-f</code>可以指定输出哪些统计信息以及其格式：</p>
+<ul>
+<li>C% 被计时的命令名称以及命令行参数</li>
+<li>D%进程非共享数据区的平均大小，单位 KB</li>
+<li>%E 进程使用的 real 时间</li>
+<li>%U user 时间</li>
+<li>x% 命令的退出状态</li>
+<li>k% 进程接受到的信号数量</li>
+<li>W% 进程被交换出主存的次数</li>
+<li>P% 进程所获得的 CPU 时间百分比，其值等于 user+sys 时间除以总运行时间</li>
+<li>K% 进程的平均中内存使用量，单位 KB</li>
+<li>W% 进程主动进入上下文切换的次数，例如等待 I/O 操作完成</li>
+<li>c% 进程被迫进入上下文切换的次数</li>
+<li>%S sys 时间</li>
+<li>%Z 系统分页大小</li>
+<li>%M 当前命令所使用的最大内存(KB 为单位)</li>
+</ul>
+<h4 id="Real-时间"><a href="#Real-时间" class="headerlink" title="Real 时间"></a>Real 时间</h4><p>Real 时间：指的是 Wall Clock Time(壁钟时间)，即命令从开始执行到结束的时间，包含执行命令期间被其他进程所占用的时间片(time slice)，以及进车被阻塞所消耗的时间(例如为等待 I/O 操作完成所用的时间)</p>
+<h4 id="User-时间"><a href="#User-时间" class="headerlink" title="User 时间"></a>User 时间</h4><p>User 时间：指的是进程花费在用户模式(内核模式之外)中的 CPU 时间，这是执行进程所花费的时间，期间执行其他进程以及花费在阻塞状态中的时间并不计算在内</p>
+<h4 id="Sys-时间"><a href="#Sys-时间" class="headerlink" title="Sys 时间"></a>Sys 时间</h4><p>Sys 时间：指的是进程花费在内核模式中的 CPU 时间，代表了在内核中执行系统调用所花费的时间</p>
+<h3 id="收集登录用户、启动日志及启动故障的相关信息"><a href="#收集登录用户、启动日志及启动故障的相关信息" class="headerlink" title="收集登录用户、启动日志及启动故障的相关信息"></a>收集登录用户、启动日志及启动故障的相关信息</h3><h4 id="who-命令"><a href="#who-命令" class="headerlink" title="who 命令"></a>who 命令</h4><p>获取当前登录用户的相关信息</p>
+<h4 id="w-命令"><a href="#w-命令" class="headerlink" title="w 命令"></a>w 命令</h4><p>获取关于登录用户的详细信息</p>
+<h4 id="users-命令"><a href="#users-命令" class="headerlink" title="users 命令"></a>users 命令</h4><p>只列出当前的登录用户列表</p>
+<h4 id="uptime-命令"><a href="#uptime-命令" class="headerlink" title="uptime 命令"></a>uptime 命令</h4><p>显示系统的家电运行时长</p>
+<h4 id="last-命令"><a href="#last-命令" class="headerlink" title="last 命令"></a>last 命令</h4><p>获取自文件<code>/var/log/wtmp</code>创建之后登录过系统的用户列表，跟上参数<code>USER</code>可以只显示具体用户的信息</p>
+<h4 id="lastb-命令"><a href="#lastb-命令" class="headerlink" title="lastb 命令"></a>lastb 命令</h4><p>类似 last 命令，但是获取的是失败的用户登录会话信息</p>
+<p>选项<code>-F</code>可以输出完整的时间信息</p>
+<h3 id="watch-命令"><a href="#watch-命令" class="headerlink" title="watch 命令"></a>watch 命令</h3><p>watch 命令会按照指定的时间间隔来执行命令并显示其输出</p>
+<p><code>watch -n INTERVAL_TIME COMMAND</code></p>
+<p>使用选项<code>-d</code>可以着重标记出连续命令输出中的差异数据</p>
+<h3 id="fsck-命令"><a href="#fsck-命令" class="headerlink" title="fsck 命令"></a>fsck 命令</h3><p><code>fsck PARTITION</code>检查指定分区或文件系统的错误</p>
+<p><code>fsck -A</code>检查/etc/fstab 中列出的所有文件系统</p>
+<p><code>fsck -a PARTITION</code>尝试自动修复指定分区或文件系统的错误</p>
+<h2 id="系统管理相关命令"><a href="#系统管理相关命令" class="headerlink" title="系统管理相关命令"></a>系统管理相关命令</h2><h3 id="ps-命令"><a href="#ps-命令" class="headerlink" title="ps 命令"></a>ps 命令</h3><p><code>ps</code>显示活跃进程的相关信息，默认只显示从当前终端所启动的进程</p>
+<p><code>ps -f</code>可以显示多列信息</p>
+<p>选项<code>-e</code>和<code>-ax</code>可以输出系统中运行的所有进程信息</p>
+<p>选项<code>-o PARAMETER1,PARAMETER2</code>可以指定显示哪些数据，选项<code>-o</code>的参数以逗号(,)作为参数分隔符，逗号与接下来的参数中间是没有空格的</p>
+<p>选项<code>-o</code>支持的参数有：</p>
+<ul>
+<li>pcpu cpu 占用率</li>
+<li>pid 进程 id</li>
+<li>ppid 父进程 id</li>
+<li>pmem 内存使用率</li>
+<li>comm 可执行文件名</li>
+<li>cmd 简单命令</li>
+<li>user 启动进程的用户</li>
+<li>nice 优先级</li>
+<li>time 累计的 CPU 时间</li>
+<li>etime 进程启动后运行的时长</li>
+<li>tty 所关联的 TTY 设备</li>
+<li>euid 有效用户 id</li>
+<li>state 进程状态</li>
+</ul>
+<p>选项<code>-u</code>指定有效用户列表</p>
+<p>选项<code>-U</code>指定真实用户列表</p>
+<h3 id="which-命令"><a href="#which-命令" class="headerlink" title="which 命令"></a>which 命令</h3><p><code>which COMMANDS</code>找出指定命令的位置</p>
+<h3 id="whereis-命令"><a href="#whereis-命令" class="headerlink" title="whereis 命令"></a>whereis 命令</h3><p>whereis 与 which 命令类似，它不仅返回命令的路径，还能打印出其对应的命令路径以及源代码路径</p>
+<h3 id="whatis-命令"><a href="#whatis-命令" class="headerlink" title="whatis 命令"></a>whatis 命令</h3><p><code>whatis COMMANDS</code>输出指定命令的一行简短描述</p>
+<h3 id="file-命令"><a href="#file-命令" class="headerlink" title="file 命令"></a>file 命令</h3><p><code>file FILENAME</code>可以用来确定文件的内容</p>
+<h3 id="kill-命令"><a href="#kill-命令" class="headerlink" title="kill 命令"></a>kill 命令</h3><p>kill 可以中断正在运行的程序</p>
+<p><code>kill -l</code>列出所有可用的信号</p>
+<p><code>kill PROCESS_ID_LIST</code>发送 SIGTERM 信号终止进程，其中进程 id 列表使用空格作为分隔符</p>
+<p><code>kill -s SIGNAL PID</code>指定发送给进程的信号，常用的信号有以下几个：</p>
+<ul>
+<li>SIGHUP(1) 对控制进程或终端的结束进行挂起检测(hangup detection)</li>
+<li>SIGINT(2) 当按下 Ctrl-C 时发送此信号，终端进程</li>
+<li>SIGKILL(9) 强行杀死进程</li>
+<li>SIGTSTP(20) 当按下 Ctrl-Z 时发送此信号，将进程转入后台执行</li>
+</ul>
+<blockquote>
+<p>注意当返送 SIGKILL 信号时，会立即生效，强行杀死进程，根本没有机会保存数据或执行通常的清理工作，因此因该优先使用 SIGTERM，将 SIGKILL 留作‘最后一招’</p>
+</blockquote>
+<h3 id="killall-命令"><a href="#killall-命令" class="headerlink" title="killall 命令"></a>killall 命令</h3><p>kill 命令使用进程 ID 作为参数，而 killall 则可以直接使用进程名字</p>
+<p><code>killall PROCESS_NAME</code>，默认发送 SIGTERM 信号，也可以通过选项<code>-s</code>指定要发送的信号</p>
+<p><code>killall -9 PROCESS_NAME</code>可以强行杀死进程</p>
+<p><code>killall -u USERNAME PROCESS_NAME</code>指定进程所属用户</p>
+<p><code>killall -I PROCESS_NAME</code>在杀死进程前进行确认</p>
+<h3 id="uname-命令"><a href="#uname-命令" class="headerlink" title="uname 命令"></a>uname 命令</h3><p><code>uname -n</code>输出当前主机名，也可以使用<code>hostname</code></p>
+<p><code>uname -a</code>输出 Linux 内核版本、硬件架构等详细信息</p>
+<p><code>uname -r</code>输出内核发行版本</p>
+<p><code>uname -m</code>输出主机类型</p>
+<h3 id="cron-命令"><a href="#cron-命令" class="headerlink" title="cron 命令"></a>cron 命令</h3><p>cron 命令可以按照固定的时间间隔在后台自动执行指定任务，cron 命令使用一张表(crontab)来记录要执行的脚本或命令以及时间间隔</p>
+<p>crontab 中每一行由 6 个字段构成，字段之间以空格分隔并按以下顺序排列：</p>
+<ol>
+<li>分钟 0~59</li>
+<li>小时 0~23</li>
+<li>天 1~31</li>
+<li>月 1~12</li>
+<li>星期中的某天 0~6</li>
+<li>在指定时间执行的脚本或命令</li>
+</ol>
+<p>以上各个字段之间用空格分隔，单个字段内多个值由逗号分隔，字段中使用*表示任何时间段，使用/表示每隔多少时间</p>
+<p><code>crontab -e</code>可以使用默认文本编辑器打开并编辑 cron 表</p>
+<p><code>crontab -l</code>可以查看当前用户的 cron 表</p>
+<p><code>crontab -l -u USERNAME</code>可以查看指定用户的 cron 表</p>
+<p><code>crontab -d</code>删除当前用户的 cron 表</p>
+<p><code>crontab -u USERNAME -d</code>删除指定用户的 cron 表</p>
+<h3 id="convert-命令"><a href="#convert-命令" class="headerlink" title="convert 命令"></a>convert 命令</h3><p>convert 命令来自图像处理工具包 ImageMagick，该软件包需要使用包管理器下载安装</p>
+<p><code>convert INPUT_FILE OUTPUT_FILE</code>可以转换图像格式</p>
+<p><code>convert INPUT_FILE -resize WIDTHxHEIGHT OUTPUT_FILE</code>可以指定输出图像的宽高，如果只指定了宽高中的一项，则 convert 命令会按照原图比例自动计算另一项的值，如果使用的不是宽高数值而是百分数，则按指定百分比缩放图像</p>
+<h3 id="图像管理脚本"><a href="#图像管理脚本" class="headerlink" title="图像管理脚本"></a>图像管理脚本</h3><figure class="highlight sh"><figcaption><span>img_helper.sh</span></figcaption><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># 文件名：img_helper.sh</span></span><br><span class="line"><span class="comment"># 用途：图像管理</span></span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$#</span> -ne 4 -a <span class="variable">$#</span> -ne 6 -a <span class="variable">$#</span> -ne 8 ]</span><br><span class="line"><span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> Incorrect number of arguments</span><br><span class="line">  <span class="built_in">exit</span> 2</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> [ <span class="variable">$#</span> -ne 0 ]</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">case</span> <span class="variable">$1</span> <span class="keyword">in</span></span><br><span class="line">  -<span class="built_in">source</span>) <span class="built_in">shift</span>;source_dir=<span class="variable">$1</span>;<span class="built_in">shift</span>;;</span><br><span class="line">  -scale) <span class="built_in">shift</span>;scale=<span class="variable">$1</span>;<span class="built_in">shift</span>;;</span><br><span class="line">  -percent) <span class="built_in">shift</span>;percent=<span class="variable">$1</span>;<span class="built_in">shift</span>;;</span><br><span class="line">  -dest) <span class="built_in">shift</span>;dest_dir=<span class="variable">$1</span>;mkdir -p <span class="variable">$dest_dir</span>;<span class="built_in">shift</span>;;</span><br><span class="line">  -ext) <span class="built_in">shift</span>;ext=<span class="variable">$1</span>;<span class="built_in">shift</span>;;</span><br><span class="line">  *) <span class="built_in">echo</span> Wrong parameters;<span class="built_in">exit</span> 2;;</span><br><span class="line">  <span class="keyword">esac</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> img <span class="keyword">in</span> `ls <span class="variable">$source_dir</span> | egrep <span class="string">&#x27;*.(jpg|png)&#x27;</span>`</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">  source_file=<span class="variable">$img</span></span><br><span class="line">  <span class="keyword">if</span> [[ -n <span class="variable">$ext</span> ]]</span><br><span class="line">  <span class="keyword">then</span></span><br><span class="line">    dest_file=<span class="variable">$&#123;img%.*&#125;</span>.<span class="variable">$ext</span></span><br><span class="line">  <span class="keyword">else</span></span><br><span class="line">    dest_file=<span class="variable">$img</span></span><br><span class="line">  <span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> [[ -n <span class="variable">$dest_dir</span> ]]</span><br><span class="line">  <span class="keyword">then</span></span><br><span class="line">    dest_file=<span class="variable">$&#123;dest_file##*/&#125;</span></span><br><span class="line">    dest_file=<span class="string">&quot;<span class="variable">$dest_dir</span>/<span class="variable">$dest_file</span>&quot;</span></span><br><span class="line">  <span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> [[ -n <span class="variable">$scale</span> ]]</span><br><span class="line">  <span class="keyword">then</span></span><br><span class="line">    PARAM=<span class="string">&quot;-resize <span class="variable">$scale</span>&quot;</span></span><br><span class="line">  <span class="keyword">elif</span> [[ -n <span class="variable">$percent</span> ]]</span><br><span class="line">  <span class="keyword">then</span></span><br><span class="line">    PARAM=<span class="string">&quot;-resize <span class="variable">$percent</span>%&quot;</span></span><br><span class="line">  <span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line">  <span class="built_in">echo</span> Processing file: <span class="variable">$source_file</span></span><br><span class="line">  convert <span class="variable">$source_file</span> <span class="variable">$PARAM</span> <span class="variable">$dest_file</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+<p>该脚本接受以下参数：</p>
+<ul>
+<li>-source：指定图像源目录</li>
+<li>-dest：指定转换后文件的目录，如果没有指定该选项，则和源目录相同</li>
+<li>-ext：指定转换后文件格式</li>
+<li>-percent：指定图像缩放比例(不能和选项-scale 同时出现)</li>
+<li>-scale：指定图像缩放宽高(不能和选项-percent 同时出现)</li>
+</ul>
+]]></content>
+      <categories>
+        <category>其他</category>
+      </categories>
+      <tags>
+        <tag>Linux</tag>
+        <tag>Shell</tag>
       </tags>
   </entry>
 </search>
